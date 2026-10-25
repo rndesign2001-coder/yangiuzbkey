@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Yangi Oʻzbek Klaviaturasi</string>
+    <string name="ime_name">Yangi Oʻzbek Klaviaturasi</string>
+    <string name="subtype_label">Oʻzbekcha (yangi alifbo)</string>
+    <string name="settings_title">Sozlamalar</string>
+    <string name="themes_title">Mavzular</string>
+    <string name="languages_title">Tillar va tugmalar tartibi</string>
+
+    <string name="welcome_title">Xush kelibsiz!</string>
+    <string name="welcome_text">Yangi oʻzbek alifbosi (Ḡ ḡ, Ō ō, Ş ş, Ç ç) uchun yaratilgan zamonaviy klaviatura. Ishlatishni boshlash uchun quyidagi ikki qadamni bajaring.</string>
+    <string name="step1_title">1-qadam: Klaviaturani yoqish</string>
+    <string name="step1_text">Tizim sozlamalarida «Yangi Oʻzbek Klaviaturasi»ni yoqing.</string>
+    <string name="step1_button">Yoqish</string>
+    <string name="step2_title">2-qadam: Klaviaturani tanlash</string>
+    <string name="step2_text">Uni joriy klaviatura sifatida tanlang.</string>
+    <string name="step2_button">Tanlash</string>
+    <string name="step_done">Bajarildi ✓</string>
+    <string name="try_hint">Shu yerda sinab koʻring…</string>
+    <string name="open_themes">Mavzular</string>
+    <string name="open_languages">Tillar</string>
+    <string name="open_settings">Sozlamalar</string>
+    <string name="privacy_note">Klaviatura internetga ulanmaydi. Siz yozgan matn hech qayerga yuborilmaydi — barcha maʼlumot faqat telefoningizda saqlanadi.</string>
+
+    <string name="pref_cat_layout">Koʻrinish</string>
+    <string name="pref_cat_typing">Yozish</string>
+    <string name="pref_cat_feedback">Tovush va tebranish</string>
+    <string name="pref_cat_suggest">Soʻz takliflari</string>
+    <string name="pref_cat_uzbek">Oʻzbek tili</string>
+    <string name="pref_cat_about">Dastur haqida</string>
+
+    <string name="pref_number_row">Raqamlar qatori</string>
+    <string name="pref_number_row_sum">Harflar ustida alohida 1–0 raqamlar qatorini koʻrsatish</string>
+    <string name="pref_hints">Tugmalarda qoʻshimcha belgilar</string>
+    <string name="pref_hints_sum">Uzoq bosilganda chiqadigan belgini tugma burchagida koʻrsatish</string>
+    <string name="pref_height">Klaviatura balandligi</string>
+    <string name="pref_toolbar">Asboblar paneli</string>
+    <string name="pref_toolbar_sum">Takliflar qatori va tezkor tugmalarni koʻrsatish</string>
+    <string name="pref_emoji_key">Emoji tugmasi</string>
+    <string name="pref_emoji_key_sum">Pastki qatorda emoji tugmasini koʻrsatish</string>
+    <string name="pref_lang_key">Til almashtirish tugmasi</string>
+    <string name="pref_lang_key_sum">Pastki qatorda 🌐 tugmasini koʻrsatish</string>
+    <string name="pref_one_handed">Bir qoʻlda yozish rejimi</string>
+    <string name="pref_key_popup">Bosilgan tugmani kattalashtirib koʻrsatish</string>
+    <string name="pref_key_popup_sum">Tugma bosilganda ustida harf oynachasi chiqadi</string>
+
+    <string name="pref_auto_cap">Avtomatik bosh harf</string>
+    <string name="pref_auto_cap_sum">Gap boshida harfni katta qilish</string>
+    <string name="pref_double_space">Ikki marta boʻsh joy — nuqta</string>
+    <string name="pref_double_space_sum">Boʻsh joyni ikki marta bosish «. » qoʻyadi</string>
+    <string name="pref_space_cursor">Boʻsh joy bilan kursorni surish</string>
+    <string name="pref_space_cursor_sum">Boʻsh joy tugmasida barmoqni chapga/oʻngga suring</string>
+    <string name="pref_delete_swipe">Oʻchirish tugmasida surib oʻchirish</string>
+    <string name="pref_delete_swipe_sum">⌫ dan chapga surib soʻzlarni belgilab oʻchirish</string>
+    <string name="pref_long_press">Uzoq bosish vaqti</string>
+
+    <string name="pref_sound">Tugma tovushi</string>
+    <string name="pref_sound_volume">Tovush balandligi</string>
+    <string name="pref_vibrate">Tebranish</string>
+    <string name="pref_vibrate_strength">Tebranish kuchi</string>
+
+    <string name="pref_suggestions">Soʻz takliflarini koʻrsatish</string>
+    <string name="pref_autocorrect">Avtomatik tuzatish</string>
+    <string name="pref_autocorrect_sum">Boʻsh joy bosilganda aniq xatoni tuzatish</string>
+    <string name="pref_learn">Yangi soʻzlarni oʻrganish</string>
+    <string name="pref_learn_sum">Siz yozgan soʻzlarni eslab qolish (parol maydonlarida hech qachon)</string>
+    <string name="pref_clear_learned">Oʻrganilgan soʻzlarni tozalash</string>
+    <string name="pref_clear_learned_done">Oʻrganilgan soʻzlar tozalandi</string>
+
+    <string name="pref_auto_convert">Avtomatik yangi harflarga oʻtkazish</string>
+    <string name="pref_auto_convert_sum">Yangi alifbo tartibida «sh», «ch», «oʻ», «gʻ» yozilsa — ş, ç, ō, ḡ ga aylantirish</string>
+    <string name="pref_apostrophe">Tutuq belgisi</string>
+    <string name="pref_apostrophe_sum">Oʻzbek lotin tartibida ishlatiladigan belgi</string>
+
+    <string name="pref_version">Versiya</string>
+    <string name="pref_privacy">Maxfiylik siyosati</string>
+    <string name="pref_privacy_sum">Klaviatura hech qanday maʼlumot yigʻmaydi va internetga ulanmaydi</string>
+
+    <string name="theme_custom_bg">Oʻz rasmingiz</string>
+    <string name="theme_pick_image">Fon rasmini tanlash</string>
+    <string name="theme_key_style">Tugmalar koʻrinishi</string>
+    <string name="theme_key_shape">Tugma shakli</string>
+    <string name="theme_key_border">Tugma chegarasi</string>
+    <string name="theme_key_radius">Burchak radiusi</string>
+    <string name="theme_key_gap">Tugmalar orasidagi masofa</string>
+    <string name="theme_font_size">Harf oʻlchami</string>
+    <string name="theme_bold">Qalin harflar</string>
+    <string name="theme_bg_dim">Fon qoraytirish</string>
+    <string name="theme_presets">Tayyor mavzular</string>
+
+    <string name="languages_hint">Kerakli tillarni belgilang. Klaviaturada 🌐 tugmasi yoki boʻsh joyni surish orqali almashtiriladi. Tartibni oʻzgartirish uchun ↑ ↓ tugmalaridan foydalaning.</string>
+    <string name="languages_need_one">Kamida bitta til yoqilgan boʻlishi kerak</string>
+
+    <string name="tb_clipboard">Bufer</string>
+    <string name="tb_emoji">Emoji</string>
+    <string name="tb_numbers">Raqamlar</string>
+    <string name="tb_theme">Mavzu</string>
+    <string name="tb_convert">Yangi alifboga oʻtkazish</string>
+    <string name="tb_settings">Sozlamalar</string>
+    <string name="tb_hide">Yopish</string>
+    <string name="clipboard_empty">Bufer boʻsh. Nusxa olingan matnlar shu yerda paydo boʻladi.</string>
+    <string name="clipboard_clear">Tozalash</string>
+    <string name="converted">Matn yangi alifboga oʻtkazildi</string>
+    <string name="nothing_to_convert">Oʻtkazish uchun matn yoʻq</string>
+    <string name="back">Orqaga</string>
+    <string name="abc">ABC</string>
+    <string name="theme_style_filled">Toʻliq</string>
+    <string name="theme_style_outline">Chiziqli</string>
+    <string name="theme_style_flat">Tekis</string>
+    <string name="theme_bg_remove">Rasmni olib tashlash</string>
+    <string name="theme_bg_failed">Rasmni ochib boʻlmadi</string>
+    <string name="theme_preview">Koʻrinish</string>
+    <string name="theme_reset">Standart holatga qaytarish</string>
+    <string name="move_up">Yuqoriga</string>
+    <string name="move_down">Pastga</string>
+    <string name="ok">OK</string>
+</resources>

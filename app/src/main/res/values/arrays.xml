@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="apostrophe_entries">
+        <item>ʼ (U+02BC, tavsiya etiladi)</item>
+        <item>ʻ (U+02BB)</item>
+        <item>\' (oddiy apostrof)</item>
+    </string-array>
+    <string-array name="apostrophe_values">
+        <item>ʼ</item>
+        <item>ʻ</item>
+        <item>\'</item>
+    </string-array>
+</resources>
