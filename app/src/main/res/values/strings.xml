@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Yangi Oʻzbek Klaviaturasi</string>
+    <string name="launcher_name">Oʻzbekcha Klaviatura</string>
     <string name="ime_name">Yangi Oʻzbek Klaviaturasi</string>
     <string name="subtype_label">Oʻzbekcha (yangi alifbo)</string>
     <string name="settings_title">Sozlamalar</string>
