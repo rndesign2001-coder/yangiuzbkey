@@ -221,7 +221,25 @@ class EmojiPanel(context: Context) : LinearLayout(context) {
             return out
         }
 
-        private fun renderable(paint: Paint, e: String, version: Float): Boolean =
-            if (Build.VERSION.SDK_INT >= 23) paint.hasGlyph(e) else version <= 1.0f
+        /** Newest emoji version the stock emoji font of this Android release covers. */
+        private val sdkEmoji: Float = when {
+            Build.VERSION.SDK_INT >= 36 -> 16.0f
+            Build.VERSION.SDK_INT >= 35 -> 15.1f
+            Build.VERSION.SDK_INT >= 34 -> 15.0f
+            Build.VERSION.SDK_INT >= 33 -> 14.0f
+            Build.VERSION.SDK_INT >= 31 -> 13.1f
+            Build.VERSION.SDK_INT >= 30 -> 13.0f
+            Build.VERSION.SDK_INT >= 29 -> 12.0f
+            Build.VERSION.SDK_INT >= 28 -> 11.0f
+            Build.VERSION.SDK_INT >= 26 -> 5.0f
+            Build.VERSION.SDK_INT >= 24 -> 4.0f
+            else -> 1.0f
+        }
+
+        private fun renderable(paint: Paint, e: String, version: Float): Boolean {
+            if (version <= sdkEmoji) return true
+            if (Build.VERSION.SDK_INT < 23) return false
+            return paint.hasGlyph(e) || paint.hasGlyph(e.replace("\uFE0F", ""))
+        }
     }
 }

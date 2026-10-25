@@ -20,7 +20,7 @@
             app:iconSpaceReserved="false" />
         <SwitchPreferenceCompat
             app:key="hints"
-            app:defaultValue="true"
+            app:defaultValue="false"
             app:title="@string/pref_hints"
             app:summary="@string/pref_hints_sum"
             app:iconSpaceReserved="false" />
@@ -31,14 +31,8 @@
             app:summary="@string/pref_toolbar_sum"
             app:iconSpaceReserved="false" />
         <SwitchPreferenceCompat
-            app:key="emoji_key"
-            app:defaultValue="true"
-            app:title="@string/pref_emoji_key"
-            app:summary="@string/pref_emoji_key_sum"
-            app:iconSpaceReserved="false" />
-        <SwitchPreferenceCompat
             app:key="lang_key"
-            app:defaultValue="true"
+            app:defaultValue="false"
             app:title="@string/pref_lang_key"
             app:summary="@string/pref_lang_key_sum"
             app:iconSpaceReserved="false" />
@@ -89,8 +83,14 @@
             app:summary="@string/pref_double_space_sum"
             app:iconSpaceReserved="false" />
         <SwitchPreferenceCompat
-            app:key="space_cursor"
+            app:key="space_lang"
             app:defaultValue="true"
+            app:title="@string/pref_space_lang"
+            app:summary="@string/pref_space_lang_sum"
+            app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat
+            app:key="space_cursor"
+            app:defaultValue="false"
             app:title="@string/pref_space_cursor"
             app:summary="@string/pref_space_cursor_sum"
             app:iconSpaceReserved="false" />
@@ -173,6 +173,11 @@
             app:key="privacy"
             app:title="@string/pref_privacy"
             app:summary="@string/pref_privacy_sum"
+            app:iconSpaceReserved="false" />
+        <Preference
+            app:key="developer"
+            app:title="@string/pref_developer"
+            app:summary="@string/developer_name"
             app:iconSpaceReserved="false" />
         <Preference
             app:key="version"

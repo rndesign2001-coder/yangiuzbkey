@@ -9,10 +9,9 @@ class Prefs(context: Context) {
     val sp: SharedPreferences = PreferenceManager.getDefaultSharedPreferences(context.applicationContext)
 
     val numberRow get() = sp.getBoolean("number_row", false)
-    val hints get() = sp.getBoolean("hints", true)
+    val hints get() = sp.getBoolean("hints", false)
     val toolbar get() = sp.getBoolean("toolbar", true)
-    val emojiKey get() = sp.getBoolean("emoji_key", true)
-    val langKey get() = sp.getBoolean("lang_key", true)
+    val langKey get() = sp.getBoolean("lang_key", false)
     val keyPopup get() = sp.getBoolean("key_popup", true)
     val heightPercent get() = sp.getInt("height", 100).coerceIn(70, 150)
 
@@ -21,7 +20,8 @@ class Prefs(context: Context) {
 
     val autoCap get() = sp.getBoolean("auto_cap", true)
     val doubleSpace get() = sp.getBoolean("double_space", true)
-    val spaceCursor get() = sp.getBoolean("space_cursor", true)
+    val spaceCursor get() = sp.getBoolean("space_cursor", false)
+    val spaceLang get() = sp.getBoolean("space_lang", true)
     val deleteSwipe get() = sp.getBoolean("delete_swipe", true)
     val longPressMs get() = sp.getInt("long_press", 300).coerceIn(150, 700).toLong()
 

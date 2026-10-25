@@ -207,6 +207,7 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
         kv.longPressMs = prefs.longPressMs
         kv.keyPopup = prefs.keyPopup
         kv.spaceCursor = prefs.spaceCursor
+        kv.spaceLang = prefs.spaceLang && prefs.languages.size > 1
         kv.deleteSwipe = prefs.deleteSwipe
         kv.locale = lang.locale
         strip.numberRowOn = prefs.numberRow
@@ -465,12 +466,12 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
         updateShift(); showIdleSuggestions()
     }
 
-    private fun nextLanguage() {
+    private fun nextLanguage(step: Int = 1) {
         finishComposing()
         val list = prefs.languages
         if (list.isEmpty()) return
         val idx = list.indexOf(lang.id)
-        val next = list[(idx + 1).mod(list.size)]
+        val next = list[(idx + step).mod(list.size)]
         prefs.currentLanguage = next
         lang = Languages.byId(next); engine.load(lang)
         mode = Mode.ALPHA
@@ -484,6 +485,8 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
             Key.POP_CLIPBOARD -> openClipboard()
         }
     }
+
+    override fun onSpaceSwipe(dir: Int) { nextLanguage(dir) }
 
     override fun onCursorMove(steps: Int) {
         val ic = currentInputConnection ?: return

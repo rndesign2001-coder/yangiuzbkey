@@ -178,7 +178,7 @@ object LayoutBuilder {
         val left = ArrayList<Key>()
         left += if (alpha) Key.func(Key.SYMBOLS, "?123", 1.5f) else Key.func(Key.ALPHA, "ABC", 1.5f)
         val commaPops = ArrayList<String>().apply {
-            add(Key.POP_SETTINGS); if (!p.emojiKey || !alpha) add(Key.POP_EMOJI); add(Key.POP_CLIPBOARD)
+            add(Key.POP_SETTINGS); add(Key.POP_EMOJI); add(Key.POP_CLIPBOARD)
         }
         left += when (variant) {
             FieldVariant.EMAIL -> Key.char("@", tokens("_ - +"))
@@ -186,13 +186,13 @@ object LayoutBuilder {
             else -> Key.char(",", commaPops)
         }
         if (alpha && multiLang && p.langKey) left += Key.func(Key.LANG)
-        if (alpha && p.emojiKey) left += Key.func(Key.EMOJI)
         val right = ArrayList<Key>()
         right += if (variant == FieldVariant.URL) Key.char(".", tokens(".com .uz .ru .org .net"))
         else Key.char(".", periodPopups)
         right += Key.func(Key.ENTER, weight = 1.5f)
         val used = left.sumOf { it.weight.toDouble() } + right.sumOf { it.weight.toDouble() }
-        val space = Key(Key.SPACE, lang.name, " ", weight = maxOf(3f, units - used.toFloat()))
+        val spaceLabel = if (alpha && multiLang && p.spaceLang) "‹  ${lang.name}  ›" else lang.name
+        val space = Key(Key.SPACE, spaceLabel, " ", weight = maxOf(3f, units - used.toFloat()))
         return left + space + right
     }
 

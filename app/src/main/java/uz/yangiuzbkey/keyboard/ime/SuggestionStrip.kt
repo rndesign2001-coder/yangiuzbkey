@@ -52,6 +52,10 @@ class SuggestionStrip(context: Context) : View(context) {
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val divider = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val scrimPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    private fun luminance(c: Int): Float =
+        (0.299f * ((c shr 16) and 0xFF) + 0.587f * ((c shr 8) and 0xFF) + 0.114f * (c and 0xFF)) / 255f
 
     private val convertTargets = listOf(
         Transliterator.NEW to "→ Yangi", Transliterator.LATN to "→ Lotin", Transliterator.CYRL to "→ Кирилл",
@@ -122,11 +126,25 @@ class SuggestionStrip(context: Context) : View(context) {
     override fun onDraw(canvas: Canvas) {
         val st = style ?: return
         val t = st.theme
-        if (st.background == null) canvas.drawColor(t.stripBg)
+        val onImage = st.background != null
+        if (!onImage) canvas.drawColor(t.stripBg)
         divider.color = t.border
         val pad = 6 * d
+        // Image backgrounds can match the icon colour, so each item gets a soft
+        // backing pill in the opposite tone plus a faint shadow.
+        val lightInk = luminance(t.stripText) > 0.5f
+        scrimPaint.color = if (lightInk) 0x66000000 else 0x99FFFFFF.toInt()
+        val shadow = if (lightInk) 0x99000000.toInt() else 0x66FFFFFF
+        if (onImage) textPaint.setShadowLayer(3 * d, 0f, d / 2, shadow) else textPaint.clearShadowLayer()
         for ((i, c) in cells.withIndex()) {
             val r = c.rect
+            if (onImage && c !== pressed && !c.active) {
+                if (c.icon != null) {
+                    canvas.drawCircle(r.centerX(), r.centerY(), 17 * d, scrimPaint)
+                } else if (c.text != null) {
+                    canvas.drawRoundRect(r.left + pad / 2, r.top + pad, r.right - pad / 2, r.bottom - pad, 10 * d, 10 * d, scrimPaint)
+                }
+            }
             if (c === pressed || c.active) {
                 fillPaint.color = if (c.active && c !== pressed) (t.accent and 0x00FFFFFF) or 0x40000000 else t.keyPressed
                 canvas.drawRoundRect(r.left + pad / 2, r.top + pad, r.right - pad / 2, r.bottom - pad, 10 * d, 10 * d, fillPaint)
@@ -142,7 +160,7 @@ class SuggestionStrip(context: Context) : View(context) {
                 val y = r.centerY() - (textPaint.descent() + textPaint.ascent()) / 2
                 canvas.drawText(shown, r.centerX(), y, textPaint)
             }
-            if (mode == Mode.SUGGEST && i < cells.lastIndex) {
+            if (mode == Mode.SUGGEST && !onImage && i < cells.lastIndex) {
                 canvas.drawRect(r.right - d / 2, r.top + 12 * d, r.right + d / 2, r.bottom - 12 * d, divider)
             }
         }

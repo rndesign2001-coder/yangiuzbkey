@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.Gravity
 import android.view.inputmethod.InputMethodManager
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -29,16 +30,13 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         val col = vertical(16)
 
-        val logo = text("Ö", 30f, true, com.google.android.material.R.attr.colorOnPrimary).apply {
-            gravity = Gravity.CENTER
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                colors = intArrayOf(0xFF1E88E5.toInt(), 0xFF00BFA5.toInt())
-                orientation = GradientDrawable.Orientation.TL_BR
-            }
+        val logo = ImageView(this).apply {
+            setImageResource(R.drawable.app_logo)
+            contentDescription = getString(R.string.app_name)
+            elevation = dp(6).toFloat()
         }
         col.addView(centered(logo).apply { setPadding(0, dp(8), 0, dp(12)) })
-        logo.layoutParams = LinearLayout.LayoutParams(dp(76), dp(76))
+        logo.layoutParams = LinearLayout.LayoutParams(dp(96), dp(96))
         col.addView(text(getString(R.string.welcome_title), 24f, true).apply { gravity = Gravity.CENTER })
         col.addView(text(getString(R.string.welcome_text), 15f, attr = com.google.android.material.R.attr.colorOnSurfaceVariant).apply {
             gravity = Gravity.CENTER
@@ -74,6 +72,11 @@ class MainActivity : AppCompatActivity() {
 
         col.addView(text("🔒  " + getString(R.string.privacy_note), 13f, attr = com.google.android.material.R.attr.colorOnSurfaceVariant).apply {
             setPadding(dp(8), dp(24), dp(8), dp(8))
+            gravity = Gravity.CENTER
+        })
+        col.addView(text(getString(R.string.pref_developer) + ": " + getString(R.string.developer_name), 13f, true,
+            com.google.android.material.R.attr.colorOnSurfaceVariant).apply {
+            setPadding(dp(8), dp(4), dp(8), dp(16))
             gravity = Gravity.CENTER
         })
 

@@ -36,8 +36,6 @@
     <string name="pref_height">Klaviatura balandligi</string>
     <string name="pref_toolbar">Asboblar paneli</string>
     <string name="pref_toolbar_sum">Takliflar qatori va tezkor tugmalarni koʻrsatish</string>
-    <string name="pref_emoji_key">Emoji tugmasi</string>
-    <string name="pref_emoji_key_sum">Pastki qatorda emoji tugmasini koʻrsatish</string>
     <string name="pref_lang_key">Til almashtirish tugmasi</string>
     <string name="pref_lang_key_sum">Pastki qatorda 🌐 tugmasini koʻrsatish</string>
     <string name="pref_one_handed">Bir qoʻlda yozish rejimi</string>
@@ -49,7 +47,11 @@
     <string name="pref_double_space">Ikki marta boʻsh joy — nuqta</string>
     <string name="pref_double_space_sum">Boʻsh joyni ikki marta bosish «. » qoʻyadi</string>
     <string name="pref_space_cursor">Boʻsh joy bilan kursorni surish</string>
-    <string name="pref_space_cursor_sum">Boʻsh joy tugmasida barmoqni chapga/oʻngga suring</string>
+    <string name="pref_space_cursor_sum">Boʻsh joy tugmasida barmoqni chapga/oʻngga suring (til almashtirish surishi oʻchiq boʻlsa)</string>
+    <string name="pref_space_lang">Boʻsh joyni surib til almashtirish</string>
+    <string name="pref_space_lang_sum">Probel tugmasini chapga yoki oʻngga surib tilni almashtiring</string>
+    <string name="pref_developer">Dasturchi</string>
+    <string name="developer_name">Rustambek Nigmatov</string>
     <string name="pref_delete_swipe">Oʻchirish tugmasida surib oʻchirish</string>
     <string name="pref_delete_swipe_sum">⌫ dan chapga surib soʻzlarni belgilab oʻchirish</string>
     <string name="pref_long_press">Uzoq bosish vaqti</string>
@@ -99,6 +101,10 @@
     <string name="tb_settings">Sozlamalar</string>
     <string name="tb_hide">Yopish</string>
     <string name="clipboard_empty">Bufer boʻsh. Nusxa olingan matnlar shu yerda paydo boʻladi.</string>
+    <string name="clip_recent">Oxirgi</string>
+    <string name="clip_pinned">Mahkamlangan</string>
+    <string name="clip_show_more">Koʻproq koʻrsat</string>
+    <string name="clip_show_less">Kamroq koʻrsat</string>
     <string name="clipboard_clear">Tozalash</string>
     <string name="converted">Matn yangi alifboga oʻtkazildi</string>
     <string name="nothing_to_convert">Oʻtkazish uchun matn yoʻq</string>

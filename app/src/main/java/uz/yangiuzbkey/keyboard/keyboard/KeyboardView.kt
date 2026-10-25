@@ -30,6 +30,8 @@ class KeyboardView @JvmOverloads constructor(context: Context, attrs: AttributeS
         fun onFunctional(code: Int)
         fun onPopupAction(token: String)
         fun onCursorMove(steps: Int)
+        /** Space bar swiped sideways while language swipe is on: -1 left, +1 right. */
+        fun onSpaceSwipe(dir: Int)
         fun onDeleteSwipe(words: Int)
         fun onDeleteSwipeEnd(apply: Boolean)
         fun onPress(key: Key)
@@ -56,6 +58,7 @@ class KeyboardView @JvmOverloads constructor(context: Context, attrs: AttributeS
     var longPressMs = 300L
     var keyPopup = true
     var spaceCursor = true
+    var spaceLang = false
     var deleteSwipe = true
     /** Keeps the keyboard from changing height between alpha / symbols pages. */
     var minContentHeight = 0
@@ -433,7 +436,15 @@ class KeyboardView @JvmOverloads constructor(context: Context, attrs: AttributeS
             PMode.NORMAL -> {
                 val k = p.key
                 when {
-                    k.code == Key.SPACE -> if (spaceCursor && abs(x - p.downX) > 16 * d) {
+                    k.code == Key.SPACE -> if (spaceLang) {
+                        if (abs(x - p.downX) > 36 * d) {
+                            cancelLongPress(p)
+                            p.mode = PMode.DONE
+                            pressed.remove(k)
+                            invalidate()
+                            listener?.onSpaceSwipe(if (x > p.downX) 1 else -1)
+                        }
+                    } else if (spaceCursor && abs(x - p.downX) > 16 * d) {
                         cancelLongPress(p)
                         p.mode = PMode.SPACE
                         p.downX = x
