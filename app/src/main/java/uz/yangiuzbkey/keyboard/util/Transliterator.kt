@@ -4,7 +4,7 @@ package uz.yangiuzbkey.keyboard.util
  * Converts Uzbek text between the three scripts in use:
  *  - "cyrl": Cyrillic (1940–1993)
  *  - "latn": Latin 1995 (oʻ, gʻ, sh, ch)
- *  - "new":  the new Latin alphabet (ō, ḡ, ş, ç)
+ *  - "new":  the new Latin alphabet (ö, ğ, ş, ç)
  * Latin 1995 is used as the pivot.
  */
 object Transliterator {
@@ -34,7 +34,7 @@ object Transliterator {
         for (c in text) {
             when {
                 isCyrillic(c) -> cyr++
-                c in "ōŌḡḠşŞçÇ" -> { nw++; lat++ }
+                c in "öÖğĞşŞçÇ" -> { nw++; lat++ }
                 c in 'a'..'z' || c in 'A'..'Z' -> lat++
             }
         }
@@ -120,8 +120,8 @@ object Transliterator {
             val c = s[i]
             val n = if (i + 1 < s.length) s[i + 1] else '\u0000'
             when {
-                (c == 'o' || c == 'O') && n == OKINA -> { sb.append(if (c == 'o') 'ō' else 'Ō'); i += 2 }
-                (c == 'g' || c == 'G') && n == OKINA -> { sb.append(if (c == 'g') 'ḡ' else 'Ḡ'); i += 2 }
+                (c == 'o' || c == 'O') && n == OKINA -> { sb.append(if (c == 'o') 'ö' else 'Ö'); i += 2 }
+                (c == 'g' || c == 'G') && n == OKINA -> { sb.append(if (c == 'g') 'ğ' else 'Ğ'); i += 2 }
                 (c == 's' || c == 'S') && (n == 'h' || n == 'H') -> { sb.append(if (c == 's') 'ş' else 'Ş'); i += 2 }
                 (c == 'c' || c == 'C') && (n == 'h' || n == 'H') -> { sb.append(if (c == 'c') 'ç' else 'Ç'); i += 2 }
                 c == TUTUQ && i > 0 && (s[i - 1] == 's' || s[i - 1] == 'S' || s[i - 1] == 'c' || s[i - 1] == 'C') && (n == 'h' || n == 'H') -> i++ // isʼhoq -> ishoq
@@ -139,10 +139,10 @@ object Transliterator {
             val prev = if (i > 0) s[i - 1] else ' '
             val caps = next.isUpperCase() || (prev.isUpperCase() && !next.isLowerCase())
             when (c) {
-                'ō' -> sb.append("o").append(OKINA)
-                'Ō' -> sb.append("O").append(OKINA)
-                'ḡ' -> sb.append("g").append(OKINA)
-                'Ḡ' -> sb.append("G").append(OKINA)
+                'ö' -> sb.append("o").append(OKINA)
+                'Ö' -> sb.append("O").append(OKINA)
+                'ğ' -> sb.append("g").append(OKINA)
+                'Ğ' -> sb.append("G").append(OKINA)
                 'ş' -> sb.append("sh")
                 'Ş' -> sb.append(if (caps) "SH" else "Sh")
                 'ç' -> sb.append("ch")

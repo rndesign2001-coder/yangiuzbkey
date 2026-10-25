@@ -29,7 +29,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         val col = vertical(16)
 
-        val logo = text("Ōʻ", 30f, true, com.google.android.material.R.attr.colorOnPrimary).apply {
+        val logo = text("Ö", 30f, true, com.google.android.material.R.attr.colorOnPrimary).apply {
             gravity = Gravity.CENTER
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL

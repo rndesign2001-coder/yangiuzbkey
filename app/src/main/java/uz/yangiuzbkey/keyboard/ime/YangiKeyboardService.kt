@@ -29,6 +29,7 @@ import uz.yangiuzbkey.keyboard.keyboard.Languages
 import uz.yangiuzbkey.keyboard.keyboard.LayoutBuilder
 import uz.yangiuzbkey.keyboard.keyboard.Mode
 import uz.yangiuzbkey.keyboard.keyboard.OverlayView
+import uz.yangiuzbkey.keyboard.keyboard.AnchorFrame
 import uz.yangiuzbkey.keyboard.keyboard.ThemedFrame
 import uz.yangiuzbkey.keyboard.settings.SettingsActivity
 import uz.yangiuzbkey.keyboard.settings.ThemesActivity
@@ -105,10 +106,10 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
     override fun onEvaluateFullscreenMode() = false
 
     override fun onCreateInputView(): View {
-        val frame = ThemedFrame(this)
+        val frame = ThemedFrame(this).apply { anchored = true }
         val column = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         strip = SuggestionStrip(this).also { it.listener = this }
-        val body = FrameLayout(this)
+        val body = AnchorFrame(this)
         overlay = OverlayView(this)
         kv = KeyboardView(this).also { it.listener = this; it.overlay = overlay }
         emoji = EmojiPanel(this).also { it.listener = this; it.visibility = View.GONE }
@@ -123,8 +124,13 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
         frame.addView(overlay, FrameLayout.LayoutParams(mp, mp))
         if (Build.VERSION.SDK_INT >= 20) {
             frame.setOnApplyWindowInsetsListener { v, insets ->
-                @Suppress("DEPRECATION")
-                v.setPadding(0, 0, 0, insets.systemWindowInsetBottom); insets
+                val bottom = if (Build.VERSION.SDK_INT >= 30) {
+                    insets.getInsets(android.view.WindowInsets.Type.navigationBars()).bottom
+                } else {
+                    @Suppress("DEPRECATION") insets.systemWindowInsetBottom
+                }
+                if (v.paddingBottom != bottom) v.setPadding(0, 0, 0, bottom)
+                insets
             }
         }
         root = frame
@@ -292,7 +298,7 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
         if (!isWordChar) updateShift()
     }
 
-    /** sh→ş, ch→ç, oʻ→ō, gʻ→ḡ while typing in the new alphabet. */
+    /** sh→ş, ch→ç, oʻ→ö, gʻ→ğ while typing in the new alphabet. */
     private fun liveConvert() {
         val s = composing
         if (s.length < 2) return
@@ -300,8 +306,8 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
         val rep: String? = when {
             b.lowercaseChar() == 'h' && a.lowercaseChar() == 's' -> if (a.isUpperCase()) "Ş" else "ş"
             b.lowercaseChar() == 'h' && a.lowercaseChar() == 'c' -> if (a.isUpperCase()) "Ç" else "ç"
-            (b == 'ʻ' || b == '`' || b == '‘') && a.lowercaseChar() == 'o' -> if (a.isUpperCase()) "Ō" else "ō"
-            (b == 'ʻ' || b == '`' || b == '‘') && a.lowercaseChar() == 'g' -> if (a.isUpperCase()) "Ḡ" else "ḡ"
+            (b == 'ʻ' || b == '`' || b == '‘') && a.lowercaseChar() == 'o' -> if (a.isUpperCase()) "Ö" else "ö"
+            (b == 'ʻ' || b == '`' || b == '‘') && a.lowercaseChar() == 'g' -> if (a.isUpperCase()) "Ğ" else "ğ"
             else -> null
         }
         if (rep != null) { s.setLength(s.length - 2); s.append(rep) }
@@ -312,7 +318,7 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
         if (lang.id != "uz_new" || !prefs.autoConvert) return word
         if (!word.any { it == 'ʼ' || it == '\'' }) return word
         val conv = word.replace(Regex("([oOgG])['ʼ]")) { m ->
-            when (m.groupValues[1]) { "o" -> "ō"; "O" -> "Ō"; "g" -> "ḡ"; else -> "Ḡ" }
+            when (m.groupValues[1]) { "o" -> "ö"; "O" -> "Ö"; "g" -> "ğ"; else -> "Ğ" }
         }
         return if (conv != word && engine.isKnown(conv.lowercase(lang.locale))) conv else word
     }

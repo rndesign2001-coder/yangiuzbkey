@@ -7,11 +7,10 @@ import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Shader
 import android.util.AttributeSet
-import android.widget.FrameLayout
 import uz.yangiuzbkey.keyboard.theme.ResolvedStyle
 
 /** Container that paints the keyboard background (gradient or user photo). */
-class ThemedFrame @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) : FrameLayout(context, attrs) {
+class ThemedFrame @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) : AnchorFrame(context, attrs) {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     private val dimPaint = Paint()
     private val matrix = Matrix()
@@ -20,7 +19,7 @@ class ThemedFrame @JvmOverloads constructor(context: Context, attrs: AttributeSe
     var style: ResolvedStyle? = null
         set(v) { field = v; gradientKey = 0L; invalidate() }
 
-    init { setWillNotDraw(false) }
+    init { setWillNotDraw(false); anchored = false }
 
     override fun onDraw(canvas: Canvas) {
         val st = style ?: return

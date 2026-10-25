@@ -39,17 +39,17 @@ object Languages {
 
     private val latinAccents = pm(
         "a" to "à á â ä æ ã å ā", "e" to "è é ê ë ē", "i" to "ì í î ï ī",
-        "o" to "ò ó ô ö õ ø ō œ", "u" to "ù ú û ü ū", "c" to "ç ć č",
-        "n" to "ñ ń", "s" to "ş ß ś š", "y" to "ý ÿ", "z" to "ž ź ż", "g" to "ğ ḡ",
+        "o" to "ò ó ô ö õ ø œ", "u" to "ù ú û ü ū", "c" to "ç ć č",
+        "n" to "ñ ń", "s" to "ş ß ś š", "y" to "ý ÿ", "z" to "ž ź ż", "g" to "ğ",
     )
 
     val all: List<Language> = listOf(
         Language(
-            "uz_new", "Oʻzbek (yangi)", "ŌZ", Locale("uz", "UZ"),
-            listOf(tokens("qwertyuiopō"), tokens("asdfghjklḡ$TUTUQ"), tokens("zxçvbnmş")),
+            "uz_new", "Oʻzbek (yangi)", "ÖZ", Locale("uz", "UZ"),
+            listOf(tokens("qwertyuiopö"), tokens("asdfghjklğ$TUTUQ"), tokens("zxçvbnmş")),
             pm(
-                "o" to "ō ó ò ö", "g" to "ḡ ğ", "s" to "ş", "ç" to "c", "ş" to "s",
-                "ō" to "o", "ḡ" to "g", "e" to "é ë", "i" to "í ı", "u" to "ú ü",
+                "o" to "ö ó ò", "g" to "ğ", "s" to "ş", "ç" to "c", "ş" to "s",
+                "ö" to "o", "ğ" to "g", "e" to "é ë", "i" to "í ı", "u" to "ú ü",
                 TUTUQ to "$OKINA '", "a" to "á à", "n" to "ñ",
             ),
             uzbek = true,

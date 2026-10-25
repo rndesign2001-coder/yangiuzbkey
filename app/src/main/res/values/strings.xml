@@ -8,7 +8,7 @@
     <string name="languages_title">Tillar va tugmalar tartibi</string>
 
     <string name="welcome_title">Xush kelibsiz!</string>
-    <string name="welcome_text">Yangi oʻzbek alifbosi (Ḡ ḡ, Ō ō, Ş ş, Ç ç) uchun yaratilgan zamonaviy klaviatura. Ishlatishni boshlash uchun quyidagi ikki qadamni bajaring.</string>
+    <string name="welcome_text">Yangi oʻzbek alifbosi (Ğ ğ, Ö ö, Ş ş, Ç ç) uchun yaratilgan zamonaviy klaviatura. Ishlatishni boshlash uchun quyidagi ikki qadamni bajaring.</string>
     <string name="step1_title">1-qadam: Klaviaturani yoqish</string>
     <string name="step1_text">Tizim sozlamalarida «Yangi Oʻzbek Klaviaturasi»ni yoqing.</string>
     <string name="step1_button">Yoqish</string>
@@ -68,7 +68,7 @@
     <string name="pref_clear_learned_done">Oʻrganilgan soʻzlar tozalandi</string>
 
     <string name="pref_auto_convert">Avtomatik yangi harflarga oʻtkazish</string>
-    <string name="pref_auto_convert_sum">Yangi alifbo tartibida «sh», «ch», «oʻ», «gʻ» yozilsa — ş, ç, ō, ḡ ga aylantirish</string>
+    <string name="pref_auto_convert_sum">Yangi alifbo tartibida «sh», «ch», «oʻ», «gʻ» yozilsa — ş, ç, ö, ğ ga aylantirish</string>
     <string name="pref_apostrophe">Tutuq belgisi</string>
     <string name="pref_apostrophe_sum">Oʻzbek lotin tartibida ishlatiladigan belgi</string>
 
