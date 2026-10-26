@@ -40,6 +40,28 @@ class Prefs(context: Context) {
     val suggestions get() = sp.getBoolean("suggestions", true)
     val autocorrect get() = sp.getBoolean("autocorrect", false)
     val learn get() = sp.getBoolean("learn", true)
+    val glide get() = sp.getBoolean("glide", true)
+    val uzSpell get() = sp.getBoolean("uz_spell", true)
+
+    var incognito: Boolean
+        get() = sp.getBoolean("incognito", false)
+        set(v) { sp.edit().putBoolean("incognito", v).apply() }
+
+    /** "off", "left" or "right". */
+    var oneHand: String
+        get() = sp.getString("one_hand", "off") ?: "off"
+        set(v) { sp.edit().putString("one_hand", v).apply() }
+    val oneHandWidth get() = sp.getInt("one_hand_width", 82).coerceIn(70, 95)
+
+    /** Text shortcuts, one "key\tvalue" pair per line. */
+    var shortcuts: String
+        get() = sp.getString("shortcuts", null) ?: DEFAULT_SHORTCUTS
+        set(v) { sp.edit().putString("shortcuts", v).apply() }
+    val shortcutMap: Map<String, String>
+        get() = shortcuts.lines().mapNotNull { l ->
+            val i = l.indexOf('\t'); if (i <= 0) null
+            else l.substring(0, i).trim().lowercase().takeIf { it.isNotEmpty() }?.let { it to l.substring(i + 1).trim() }
+        }.filter { it.second.isNotEmpty() }.toMap()
 
     val vibrate get() = sp.getBoolean("vibrate", true)
     val vibrateMs get() = sp.getInt("vibrate_strength", 15).coerceIn(5, 60).toLong()
@@ -61,6 +83,7 @@ class Prefs(context: Context) {
 
     companion object {
         const val DEFAULT_LANGS = "uz_new,uz_latn,ru,en"
+        const val DEFAULT_SHORTCUTS = "assl\tAssalomu alaykum\nrhm\tRahmat\nxayr\tXayr, salomat bo'ling"
         const val DEFAULT_TOOLBAR = "SETTINGS,EMOJI,CLIPBOARD,NUMBERS,THEME,CONVERT,HIDE"
     }
 }

@@ -9,7 +9,7 @@ import android.graphics.RectF
  * Vector icons drawn straight onto a canvas, designed on a 24×24 grid.
  * Strokes scale with the icon so they stay crisp on every density.
  */
-enum class Icon { SHIFT, SHIFT_ON, CAPS, DELETE, ENTER, SEARCH, SEND, DONE, NEXT, GLOBE, EMOJI, GEAR, CLIPBOARD, PALETTE, CHEVRON_DOWN, CONVERT, CLOSE, TRASH, NUMBERS, BACK, KEYBOARD, PIN, UNDO, REDO, COPY, PASTE, CUT, SELECT_ALL, IMAGE, PLUS }
+enum class Icon { SHIFT, SHIFT_ON, CAPS, DELETE, ENTER, SEARCH, SEND, DONE, NEXT, GLOBE, EMOJI, GEAR, CLIPBOARD, PALETTE, CHEVRON_DOWN, CONVERT, CLOSE, TRASH, NUMBERS, BACK, KEYBOARD, PIN, UNDO, REDO, COPY, PASTE, CUT, SELECT_ALL, IMAGE, PLUS, MIC, EDIT, ONE_HAND, INCOGNITO, ARROW_UP, ARROW_DOWN, HOME, END, SELECT }
 
 object Icons {
     private val path = Path()
@@ -182,6 +182,42 @@ object Icons {
             }
             Icon.PLUS -> {
                 c.drawLine(12f, 5f, 12f, 19f, stroke); c.drawLine(5f, 12f, 19f, 12f, stroke)
+            }
+            Icon.MIC -> {
+                oval.set(9f, 3f, 15f, 15f); c.drawRoundRect(oval, 3f, 3f, stroke)
+                oval.set(5.5f, 6f, 18.5f, 18f); c.drawArc(oval, 0f, 180f, false, stroke)
+                c.drawLine(12f, 18f, 12f, 21f, stroke); c.drawLine(9f, 21f, 15f, 21f, stroke)
+            }
+            Icon.EDIT -> {
+                path.moveTo(4f, 20f); path.lineTo(4.5f, 16f); path.lineTo(15.5f, 5f); path.lineTo(19f, 8.5f)
+                path.lineTo(8f, 19.5f); path.close(); c.drawPath(path, stroke)
+                c.drawLine(13f, 7.5f, 16.5f, 11f, stroke)
+            }
+            Icon.ONE_HAND -> {
+                oval.set(6f, 2.5f, 18f, 21.5f); c.drawRoundRect(oval, 2.5f, 2.5f, stroke)
+                oval.set(8.5f, 12f, 15.5f, 18f); c.drawRect(oval, fill)
+            }
+            Icon.INCOGNITO -> {
+                path.moveTo(3f, 11f); path.lineTo(21f, 11f); path.moveTo(6f, 11f); path.lineTo(8f, 4.5f)
+                path.lineTo(16f, 4.5f); path.lineTo(18f, 11f); c.drawPath(path, stroke)
+                c.drawCircle(7.5f, 16.5f, 3f, stroke); c.drawCircle(16.5f, 16.5f, 3f, stroke)
+                c.drawLine(10.5f, 16f, 13.5f, 16f, stroke)
+            }
+            Icon.ARROW_UP, Icon.ARROW_DOWN -> {
+                if (icon == Icon.ARROW_DOWN) c.scale(1f, -1f, 12f, 12f)
+                c.drawLine(12f, 5f, 12f, 20f, stroke)
+                path.moveTo(6f, 11f); path.lineTo(12f, 5f); path.lineTo(18f, 11f); c.drawPath(path, stroke)
+            }
+            Icon.HOME, Icon.END -> {
+                if (icon == Icon.END) c.scale(-1f, 1f, 12f, 12f)
+                c.drawLine(4.5f, 5f, 4.5f, 19f, stroke); c.drawLine(8f, 12f, 20f, 12f, stroke)
+                path.moveTo(13f, 7f); path.lineTo(8f, 12f); path.lineTo(13f, 17f); c.drawPath(path, stroke)
+            }
+            Icon.SELECT -> {
+                c.drawLine(12f, 4f, 12f, 20f, stroke)
+                c.drawLine(9f, 4f, 15f, 4f, stroke); c.drawLine(9f, 20f, 15f, 20f, stroke)
+                stroke.strokeWidth = 1.6f
+                c.drawLine(3f, 12f, 8f, 12f, stroke); c.drawLine(16f, 12f, 21f, 12f, stroke)
             }
         }
         c.restore()

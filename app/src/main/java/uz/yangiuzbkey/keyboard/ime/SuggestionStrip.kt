@@ -27,6 +27,8 @@ class SuggestionStrip(context: Context) : View(context) {
         SELECT_ALL(Icon.SELECT_ALL, "Hammasini belgilash"), COPY(Icon.COPY, "Nusxa olish"), CUT(Icon.CUT, "Kesish"),
         PASTE(Icon.PASTE, "Qo'yish"), CURSOR_LEFT(Icon.BACK, "Kursor chapga"), CURSOR_RIGHT(Icon.NEXT, "Kursor o'ngga"),
         LANGUAGE(Icon.GLOBE, "Til"), KEYBOARD_PICK(Icon.KEYBOARD, "Klaviatura tanlash"),
+        MIC(Icon.MIC, "Ovozli yozish"), EDIT_PANEL(Icon.EDIT, "Matn tahriri"), ONE_HAND(Icon.ONE_HAND, "Bir qo'l rejimi"),
+        INCOGNITO(Icon.INCOGNITO, "Inkognito"),
         BACK(Icon.BACK, ""),
     }
 
@@ -58,6 +60,9 @@ class SuggestionStrip(context: Context) : View(context) {
     var numberRowOn = false
         set(v) { if (field != v) { field = v; rebuild() } }
     var toolbarEnabled = true
+        set(v) { if (field != v) { field = v; rebuild() } }
+    /** Toolbar buttons drawn highlighted (incognito, one-hand on). */
+    var activeActions: Set<Action> = emptySet()
         set(v) { if (field != v) { field = v; rebuild() } }
     /** Toolbar buttons in display order. */
     var items: List<Action> = parse(uz.yangiuzbkey.keyboard.util.Prefs.DEFAULT_TOOLBAR.split(','))
@@ -145,7 +150,7 @@ class SuggestionStrip(context: Context) : View(context) {
                 scroll = scroll.coerceIn(0f, maxOf(0f, contentW - w))
                 list.forEachIndexed { i, a ->
                     cells += Cell(RectF(i * cw, 0f, (i + 1) * cw, h), icon = a.icon,
-                        active = a == Action.NUMBERS && numberRowOn) { listener?.onToolbar(a) }
+                        active = (a == Action.NUMBERS && numberRowOn) || a in activeActions) { listener?.onToolbar(a) }
                 }
             }
             Mode.CONVERT -> {

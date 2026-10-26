@@ -65,6 +65,22 @@
             app:title="@string/pref_bottom_gap"
             app:summary="@string/pref_bottom_gap_sum"
             app:iconSpaceReserved="false" />
+        <ListPreference
+            app:key="one_hand"
+            app:defaultValue="off"
+            app:entries="@array/one_hand_entries"
+            app:entryValues="@array/one_hand_values"
+            app:title="@string/pref_one_hand"
+            app:useSimpleSummaryProvider="true"
+            app:iconSpaceReserved="false" />
+        <SeekBarPreference
+            app:key="one_hand_width"
+            app:defaultValue="82"
+            app:min="70"
+            android:max="95"
+            app:showSeekBarValue="true"
+            app:title="@string/pref_one_hand_width"
+            app:iconSpaceReserved="false" />
         <Preference
             app:key="toolbar_reset"
             app:title="@string/pref_toolbar_reset"
@@ -87,6 +103,12 @@
             app:title="@string/pref_apostrophe"
             app:useSimpleSummaryProvider="true"
             app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat
+            app:key="uz_spell"
+            app:defaultValue="true"
+            app:title="@string/pref_uz_spell"
+            app:summary="@string/pref_uz_spell_sum"
+            app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
     <PreferenceCategory app:title="@string/pref_cat_typing" app:iconSpaceReserved="false">
@@ -95,6 +117,17 @@
             app:defaultValue="true"
             app:title="@string/pref_auto_cap"
             app:summary="@string/pref_auto_cap_sum"
+            app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat
+            app:key="glide"
+            app:defaultValue="true"
+            app:title="@string/pref_glide"
+            app:summary="@string/pref_glide_sum"
+            app:iconSpaceReserved="false" />
+        <Preference
+            app:key="shortcuts_edit"
+            app:title="@string/pref_shortcuts"
+            app:summary="@string/pref_shortcuts_sum"
             app:iconSpaceReserved="false" />
         <SwitchPreferenceCompat
             app:key="double_space"
@@ -150,6 +183,22 @@
             app:dependency="suggestions"
             app:title="@string/pref_learn"
             app:summary="@string/pref_learn_sum"
+            app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat
+            app:key="incognito"
+            app:defaultValue="false"
+            app:title="@string/pref_incognito"
+            app:summary="@string/pref_incognito_sum"
+            app:iconSpaceReserved="false" />
+        <Preference
+            app:key="dict_export"
+            app:title="@string/pref_dict_export"
+            app:summary="@string/pref_dict_export_sum"
+            app:iconSpaceReserved="false" />
+        <Preference
+            app:key="dict_import"
+            app:title="@string/pref_dict_import"
+            app:summary="@string/pref_dict_import_sum"
             app:iconSpaceReserved="false" />
         <Preference
             app:key="clear_learned"

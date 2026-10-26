@@ -3,6 +3,7 @@ package uz.yangiuzbkey.keyboard.keyboard
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.view.View
@@ -112,13 +113,37 @@ class OverlayView(context: Context) : View(context) {
         if (popupItems.isNotEmpty()) { popupItems = emptyList(); popupLabels = emptyList(); cells.clear(); selected = -1; invalidate() }
     }
 
-    fun hideAll() { hidePreview(); hidePopup() }
+    fun hideAll() { hidePreview(); hidePopup(); clearTrail() }
+
+    // Glide trail
+    private val trail = ArrayList<Float>()
+    private val trailPath = Path()
+    private val trailPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
+    }
+
+    fun addTrail(x: Float, y: Float) {
+        trail += x; trail += y
+        while (trail.size > TRAIL_MAX * 2) { trail.removeAt(0); trail.removeAt(0) }
+        invalidate()
+    }
+
+    fun clearTrail() { if (trail.isNotEmpty()) { trail.clear(); invalidate() } }
 
     override fun onDraw(canvas: Canvas) {
         val st = style ?: return
         val t = st.theme
         val r = 10 * d
         textPaint.typeface = if (st.bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+        if (trail.size >= 4) {
+            trailPath.reset()
+            trailPath.moveTo(trail[0], trail[1])
+            var i = 2
+            while (i < trail.size) { trailPath.lineTo(trail[i], trail[i + 1]); i += 2 }
+            trailPaint.color = (t.accent and 0x00FFFFFF) or (0xB0 shl 24)
+            trailPaint.strokeWidth = 5 * d
+            canvas.drawPath(trailPath, trailPaint)
+        }
         previewRect?.let { pr ->
             shadowPaint.color = 0x40000000
             canvas.drawRoundRect(pr.left, pr.top + 2 * d, pr.right, pr.bottom + 2 * d, r, r, shadowPaint)
@@ -166,4 +191,6 @@ class OverlayView(context: Context) : View(context) {
         val w = textPaint.measureText(s)
         if (w > maxW && w > 0) textPaint.textSize = textPaint.textSize * maxW / w
     }
+
+    private companion object { const val TRAIL_MAX = 60 }
 }

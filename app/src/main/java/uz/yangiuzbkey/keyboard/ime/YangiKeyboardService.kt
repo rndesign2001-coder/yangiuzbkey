@@ -7,6 +7,12 @@ import android.content.SharedPreferences
 import android.inputmethodservice.InputMethodService
 import android.media.AudioManager
 import android.os.Build
+import android.os.Bundle
+import android.Manifest
+import android.content.pm.PackageManager
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
 import android.os.SystemClock
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -42,7 +48,7 @@ import uz.yangiuzbkey.keyboard.util.Transliterator
  * suggestions, autocorrect and new-alphabet conversion can rewrite it.
  */
 class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, SuggestionStrip.Listener,
-    EmojiPanel.Listener, ClipboardPanel.Listener, ToolbarEditPanel.Listener, SharedPreferences.OnSharedPreferenceChangeListener {
+    EmojiPanel.Listener, ClipboardPanel.Listener, ToolbarEditPanel.Listener, EditPanel.Listener, SharedPreferences.OnSharedPreferenceChangeListener {
 
     private lateinit var prefs: Prefs
     private lateinit var engine: SuggestionEngine
@@ -55,6 +61,8 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
     private lateinit var emoji: EmojiPanel
     private lateinit var clipPanel: ClipboardPanel
     private lateinit var tbEdit: ToolbarEditPanel
+    private lateinit var editPanel: EditPanel
+    private var recognizer: SpeechRecognizer? = null
     private lateinit var overlay: OverlayView
 
     private var lang: Language = Languages.all.first()
@@ -63,6 +71,7 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
     private var password = false
     private var noSuggest = false
     private var rawInput = false
+    private var incognito = false
 
     private val composing = StringBuilder()
     private var lastShiftTap = 0L
@@ -103,6 +112,7 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
             lang = Languages.byId(prefs.currentLanguage); engine.load(lang)
         }
         if (key == "learned_reset") engine.clearLearned()
+        if (key == "learned_reload") engine.reload(lang)
     }
 
     override fun onEvaluateFullscreenMode() = false
@@ -122,6 +132,8 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
         body.addView(clipPanel, FrameLayout.LayoutParams(mp, mp))
         tbEdit = ToolbarEditPanel(this).also { it.listener = this; it.visibility = View.GONE }
         body.addView(tbEdit, FrameLayout.LayoutParams(mp, mp))
+        editPanel = EditPanel(this).also { it.listener = this; it.visibility = View.GONE }
+        body.addView(editPanel, FrameLayout.LayoutParams(mp, mp))
         column.addView(strip, LinearLayout.LayoutParams(mp, ViewGroup.LayoutParams.WRAP_CONTENT))
         column.addView(body, LinearLayout.LayoutParams(mp, ViewGroup.LayoutParams.WRAP_CONTENT))
         frame.addView(column, FrameLayout.LayoutParams(mp, ViewGroup.LayoutParams.WRAP_CONTENT))
@@ -163,6 +175,7 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
         }
         lang = Languages.byId(prefs.currentLanguage)
         engine.load(lang)
+        incognito = prefs.incognito || info.imeOptions and 0x1000000 != 0
         composing.setLength(0); revert = null; oneShotShift = false
         closePanels()
         applySettings(force = true)
@@ -259,7 +272,7 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
         if (styleDirty || force) {
             val st = ThemeManager.resolve(this, prefs)
             root?.style = st; kv.setStyle(st); strip.style = st
-            emoji.setStyle(st); clipPanel.setStyle(st); tbEdit.setStyle(st)
+            emoji.setStyle(st); clipPanel.setStyle(st); tbEdit.setStyle(st); editPanel.setStyle(st)
             applyNavBarColor(st.theme.bg)
             strip.invalidate(); root?.invalidate()
             styleDirty = false
@@ -274,6 +287,13 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
         strip.numberRowOn = prefs.numberRow
         strip.toolbarEnabled = prefs.toolbar
         strip.items = SuggestionStrip.parse(prefs.toolbarItems)
+        strip.activeActions = buildSet {
+            if (incognito) add(SuggestionStrip.Action.INCOGNITO)
+            if (prefs.oneHand != "off") add(SuggestionStrip.Action.ONE_HAND)
+        }
+        kv.glide = prefs.glide && !password && !noSuggest && mode == Mode.ALPHA
+        kv.oneHand = when (prefs.oneHand) { "left" -> -1; "right" -> 1; else -> 0 }
+        kv.oneHandFrac = prefs.oneHandWidth / 100f
         applyBottomPadding()
         val alpha = LayoutBuilder.alpha(lang, prefs, prefs.languages.size > 1, variant, password)
         val sym = LayoutBuilder.symbols(lang, prefs, false, variant)
@@ -392,14 +412,18 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
         if (composing.isEmpty()) { ic.commitText(sep, 1); showIdleSuggestions(); return }
         var word = finalConvert(composing.toString())
         val original = word
-        if (!noSuggest && prefs.autocorrect && sep.isNotEmpty() && sep.first().let { it == ' ' || it in ".,!?;:" }) {
+        val sepOk = sep.isNotEmpty() && sep.first().let { it == ' ' || it in ".,!?;:\n" }
+        var expanded = false
+        if (sepOk && !password) prefs.shortcutMap[word.lowercase(lang.locale)]?.let { word = it; expanded = true }
+        if (!expanded && !password && prefs.uzSpell && lang.id == "uz_latn") word = fixUzApostrophe(word)
+        if (!expanded && !noSuggest && prefs.autocorrect && sep.isNotEmpty() && sep.first().let { it == ' ' || it in ".,!?;:" }) {
             val r = engine.suggest(word, 3, true)
             val corr = r.autocorrect
             if (corr != null && !corr.equals(word, true)) word = corr
         }
         ic.commitText(word + sep, 1)
         if (word != original) revert = (word + sep) to original
-        if (!password && prefs.learn && !noSuggest) { engine.learnPair(lastWord, word); engine.learn(word) }
+        if (!password && prefs.learn && !noSuggest && !incognito && !expanded) { engine.learnPair(lastWord, word); engine.learn(word) }
         lastWord = if (sep.isNotEmpty() && sep.first() in ".!?\n") "" else word
         composing.setLength(0)
         showIdleSuggestions()
@@ -411,7 +435,7 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
         val w = finalConvert(composing.toString())
         if (w != composing.toString()) ic?.setComposingText(w, 1)
         ic?.finishComposingText()
-        if (!password && prefs.learn && !noSuggest) engine.learn(w)
+        if (!password && prefs.learn && !noSuggest && !incognito) engine.learn(w)
         composing.setLength(0)
     }
 
@@ -472,7 +496,7 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
                 ic.deleteSurroundingText(corrected.length, 0)
                 composing.setLength(0); composing.append(original)
                 ic.setComposingText(composing, 1)
-                if (prefs.learn && !password) engine.learn(original)
+                if (prefs.learn && !password && !incognito) engine.learn(original)
                 refreshSuggestions(); return
             }
         }
@@ -627,11 +651,11 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
         revert = null
         if (composing.isEmpty()) {
             ic.commitText("$word ", 1)
-            if (prefs.learn && !password) engine.learnPair(lastWord, word)
+            if (prefs.learn && !password && !incognito) engine.learnPair(lastWord, word)
         }
         else {
             ic.commitText("$word ", 1)
-            if (prefs.learn && !password) { engine.learnPair(lastWord, word); engine.learn(word) }
+            if (prefs.learn && !password && !incognito) { engine.learnPair(lastWord, word); engine.learn(word) }
             composing.setLength(0)
         }
         lastWord = word
@@ -659,6 +683,18 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
             SuggestionStrip.Action.LANGUAGE -> { finishComposing(); nextLanguage() }
             SuggestionStrip.Action.KEYBOARD_PICK ->
                 (getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager)?.showInputMethodPicker()
+            SuggestionStrip.Action.MIC -> startVoice()
+            SuggestionStrip.Action.EDIT_PANEL -> openEditPanel()
+            SuggestionStrip.Action.ONE_HAND -> {
+                prefs.oneHand = when (prefs.oneHand) { "off" -> "right"; "right" -> "left"; else -> "off" }
+                applySettings()
+            }
+            SuggestionStrip.Action.INCOGNITO -> {
+                prefs.incognito = !prefs.incognito
+                incognito = prefs.incognito || (currentInputEditorInfo?.imeOptions ?: 0) and 0x1000000 != 0
+                Toast.makeText(this, if (incognito) R.string.incognito_on else R.string.incognito_off, Toast.LENGTH_SHORT).show()
+                applySettings()
+            }
         }
     }
 
@@ -703,7 +739,7 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
 
     private fun openEmoji() {
         finishComposing()
-        clipPanel.visibility = View.GONE; tbEdit.visibility = View.GONE
+        clipPanel.visibility = View.GONE; tbEdit.visibility = View.GONE; editPanel.visibility = View.GONE
         emoji.visibility = View.VISIBLE; emoji.open()
         kv.cancelAll(); kv.visibility = View.INVISIBLE
     }
@@ -711,7 +747,7 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
     private fun openClipboard() {
         finishComposing()
         clipboard?.let { clipHistory.capture(it) }
-        emoji.visibility = View.GONE; tbEdit.visibility = View.GONE
+        emoji.visibility = View.GONE; tbEdit.visibility = View.GONE; editPanel.visibility = View.GONE
         clipPanel.visibility = View.VISIBLE; clipPanel.refresh()
         kv.cancelAll(); kv.visibility = View.INVISIBLE
     }
@@ -719,6 +755,7 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
     private fun closePanels() {
         if (!::kv.isInitialized) return
         emoji.visibility = View.GONE; clipPanel.visibility = View.GONE; tbEdit.visibility = View.GONE
+        editPanel.visibility = View.GONE
         kv.visibility = View.VISIBLE
     }
 
@@ -767,7 +804,7 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
     override fun onToolbarEdit() {
         if (!::kv.isInitialized) return
         finishComposing()
-        emoji.visibility = View.GONE; clipPanel.visibility = View.GONE
+        emoji.visibility = View.GONE; clipPanel.visibility = View.GONE; editPanel.visibility = View.GONE
         tbEdit.visibility = View.VISIBLE; tbEdit.open(strip.items)
         kv.cancelAll(); kv.visibility = View.INVISIBLE
     }
@@ -790,7 +827,138 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
         if (layoutDirty || styleDirty) applySettings()
     }
 
+    // ---------------------------------------------------------------- extras
+
+    private fun fixUzApostrophe(w: String): String {
+        if (w.length < 2) return w
+        return UZ_APOS.replace(w) { m -> m.groupValues[1] + "\u02BB" }
+    }
+
+    private fun startVoice() {
+        finishComposing()
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            try {
+                startActivity(Intent(this, uz.yangiuzbkey.keyboard.settings.VoicePermissionActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            } catch (_: Exception) {}
+            return
+        }
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            Toast.makeText(this, R.string.voice_unavailable, Toast.LENGTH_LONG).show(); return
+        }
+        recognizer?.destroy()
+        val rec = try { SpeechRecognizer.createSpeechRecognizer(this) } catch (_: Exception) { null }
+        if (rec == null) { Toast.makeText(this, R.string.voice_unavailable, Toast.LENGTH_LONG).show(); return }
+        recognizer = rec
+        val tag = when {
+            lang.id.startsWith("uz") -> "uz-UZ"
+            lang.id.startsWith("ru") -> "ru-RU"
+            lang.id.startsWith("tr") -> "tr-TR"
+            else -> "en-US"
+        }
+        rec.setRecognitionListener(object : RecognitionListener {
+            override fun onReadyForSpeech(params: Bundle?) {
+                Toast.makeText(this@YangiKeyboardService, R.string.voice_speak, Toast.LENGTH_SHORT).show()
+            }
+            override fun onBeginningOfSpeech() {}
+            override fun onRmsChanged(rmsdB: Float) {}
+            override fun onBufferReceived(buffer: ByteArray?) {}
+            override fun onEndOfSpeech() {}
+            override fun onError(error: Int) {
+                if (error == SpeechRecognizer.ERROR_NO_MATCH || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT)
+                    Toast.makeText(this@YangiKeyboardService, R.string.voice_nomatch, Toast.LENGTH_SHORT).show()
+                else Toast.makeText(this@YangiKeyboardService, R.string.voice_unavailable, Toast.LENGTH_SHORT).show()
+                rec.destroy(); if (recognizer === rec) recognizer = null
+            }
+            override fun onResults(results: Bundle?) {
+                val text = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
+                val ic = currentInputConnection
+                if (!text.isNullOrBlank() && ic != null) {
+                    val before = ic.getTextBeforeCursor(1, 0)?.toString() ?: ""
+                    val lead = if (before.isEmpty() || before.last().isWhitespace()) "" else " "
+                    ic.commitText(lead + text, 1)
+                    updateShift(); showIdleSuggestions()
+                }
+                rec.destroy(); if (recognizer === rec) recognizer = null
+            }
+            override fun onPartialResults(partialResults: Bundle?) {}
+            override fun onEvent(eventType: Int, params: Bundle?) {}
+        })
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+            .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            .putExtra(RecognizerIntent.EXTRA_LANGUAGE, tag)
+            .putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, tag)
+            .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
+            .putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, packageName)
+        try { rec.startListening(intent) } catch (_: Exception) {
+            Toast.makeText(this, R.string.voice_unavailable, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun openEditPanel() {
+        if (!::kv.isInitialized) return
+        finishComposing()
+        emoji.visibility = View.GONE; clipPanel.visibility = View.GONE; tbEdit.visibility = View.GONE
+        editPanel.visibility = View.VISIBLE; editPanel.open()
+        kv.cancelAll(); kv.visibility = View.INVISIBLE
+    }
+
+    override fun onEditAction(id: String) {
+        val ic = currentInputConnection ?: return
+        finishComposing()
+        fun arrow(code: Int) {
+            val meta = if (editPanel.selecting) KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_LEFT_ON else 0
+            val t = SystemClock.uptimeMillis()
+            ic.sendKeyEvent(KeyEvent(t, t, KeyEvent.ACTION_DOWN, code, 0, meta))
+            ic.sendKeyEvent(KeyEvent(t, t, KeyEvent.ACTION_UP, code, 0, meta))
+        }
+        when (id) {
+            "left" -> arrow(KeyEvent.KEYCODE_DPAD_LEFT)
+            "right" -> arrow(KeyEvent.KEYCODE_DPAD_RIGHT)
+            "up" -> arrow(KeyEvent.KEYCODE_DPAD_UP)
+            "down" -> arrow(KeyEvent.KEYCODE_DPAD_DOWN)
+            "home" -> arrow(KeyEvent.KEYCODE_MOVE_HOME)
+            "end" -> arrow(KeyEvent.KEYCODE_MOVE_END)
+            "select_all" -> contextAction(android.R.id.selectAll)
+            "copy" -> { contextAction(android.R.id.copy); editPanel.selecting = false }
+            "cut" -> { contextAction(android.R.id.cut); editPanel.selecting = false }
+            "paste" -> contextAction(android.R.id.paste)
+            "undo" -> ctrlKey(KeyEvent.KEYCODE_Z, false)
+            "redo" -> ctrlKey(KeyEvent.KEYCODE_Z, true)
+            "delete" -> {
+                val sel = ic.getSelectedText(0)
+                if (!sel.isNullOrEmpty()) ic.commitText("", 1) else sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
+            }
+        }
+    }
+
+    override fun onEditClose() { closePanels(); strip.showToolbar() }
+
+    override fun onGlide(path: String) {
+        val ic = currentInputConnection ?: return
+        finishComposing()
+        revert = null
+        val list = engine.glide(path, 4)
+        if (list.isEmpty()) return
+        var best = list.first()
+        if (kv.shift != KeyboardView.ShiftState.OFF) {
+            best = if (kv.shift == KeyboardView.ShiftState.LOCKED) best.uppercase(lang.locale)
+                   else best.replaceFirstChar { it.titlecase(lang.locale) }
+        }
+        val before = ic.getTextBeforeCursor(1, 0)?.toString() ?: ""
+        val lead = if (before.isEmpty() || before.last().isWhitespace() || before.last() in "([\"«") "" else " "
+        ic.commitText(lead + best, 1)
+        if (prefs.learn && !incognito) engine.learnPair(lastWord, list.first())
+        lastWord = list.first()
+        if (oneShotShift) { kv.shift = KeyboardView.ShiftState.OFF; oneShotShift = false }
+        glideWord = lead + best
+        strip.setSuggestions(list.drop(1), null, null)
+    }
+
+    private var glideWord: String? = null
+
     private companion object {
+        val UZ_APOS = Regex("([oOgG])['ʼ`‘’]")
         val PREV_WORD = Regex("([\\p{L}'ʼ‘’-]+) $")
     }
 }

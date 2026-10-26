@@ -16,6 +16,7 @@ import uz.yangiuzbkey.keyboard.theme.KeyStyle
 import uz.yangiuzbkey.keyboard.theme.ResolvedStyle
 import java.util.Locale
 import kotlin.math.abs
+import kotlin.math.hypot
 
 /**
  * Custom-drawn key grid with multi-touch, key previews, long-press popups,
@@ -37,6 +38,7 @@ class KeyboardView @JvmOverloads constructor(context: Context, attrs: AttributeS
         fun onPress(key: Key)
         /** Return true when the long press was handled (e.g. space → IME picker). */
         fun onLongPressFunctional(code: Int): Boolean
+        fun onGlide(path: String)
     }
 
     var listener: Listener? = null
@@ -60,6 +62,12 @@ class KeyboardView @JvmOverloads constructor(context: Context, attrs: AttributeS
     var spaceCursor = true
     var spaceLang = false
     var deleteSwipe = true
+    var glide = false
+    /** One-handed mode: 0 off, -1 left, 1 right. */
+    var oneHand = 0
+        set(v) { if (field != v) { field = v; computeRects(); invalidate() } }
+    var oneHandFrac = 0.82f
+        set(v) { if (field != v) { field = v; computeRects(); invalidate() } }
     /** Keeps the keyboard from changing height between alpha / symbols pages. */
     var minContentHeight = 0
         set(v) { if (field != v) { field = v; requestLayout() } }
@@ -124,12 +132,15 @@ class KeyboardView @JvmOverloads constructor(context: Context, attrs: AttributeS
         val sum = l.rows.indices.sumOf { rowHeight(it, l).toDouble() }.toFloat()
         val avail = height - padTop - padBottom
         val scale = if (sum > 0f && avail > sum) avail / sum else 1f
-        val unitW = (width - padSide * 2) / l.units
+        val availW = width - padSide * 2
+        val kbW = if (oneHand != 0) availW * oneHandFrac else availW
+        val x0 = padSide + (if (oneHand > 0) availW - kbW else 0f)
+        val unitW = kbW / l.units
         var y = padTop
         l.rows.forEachIndexed { i, row ->
             val h = rowHeight(i, l) * scale
             val rowW = row.sumOf { it.weight.toDouble() }.toFloat()
-            var x = padSide + maxOf(0f, (l.units - rowW) / 2f) * unitW
+            var x = x0 + maxOf(0f, (l.units - rowW) / 2f) * unitW
             for (k in row) {
                 val kw = k.weight * unitW
                 k.rect.set(x, y, x + kw, y + h)
@@ -285,13 +296,15 @@ class KeyboardView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
     // ---------------------------------------------------------------- touch
 
-    private enum class PMode { NORMAL, POPUP, SPACE, DELSWIPE, DONE }
+    private enum class PMode { NORMAL, POPUP, SPACE, DELSWIPE, GLIDE, DONE }
 
     private class Ptr(val id: Int, var key: Key, var downX: Float, val downY: Float) {
         var mode = PMode.NORMAL
         var lastStep = 0
         var words = 0
         var repeated = false
+        val path = StringBuilder()
+        var lastGlide: Key? = null
     }
 
     private val ptrs = ArrayList<Ptr>()
@@ -460,7 +473,19 @@ class KeyboardView @JvmOverloads constructor(context: Context, attrs: AttributeS
                     }
                     k.isChar -> {
                         val nk = findKey(x, y)
-                        if (nk != null && nk !== k && nk.isChar && nk.code != Key.SPACE) {
+                        if (glide && ptrs.size == 1 && nk != null && nk !== k && isGlideKey(k) && isGlideKey(nk)
+                            && hypot(x - p.downX, y - p.downY) > 22 * d) {
+                            cancelLongPress(p)
+                            overlay?.hidePreview()
+                            pressed.remove(k)
+                            p.mode = PMode.GLIDE
+                            p.path.append(k.label.lowercase()).append(nk.label.lowercase())
+                            p.lastGlide = nk
+                            val (ox, oy) = overlayOffset()
+                            overlay?.addTrail(p.downX + ox, p.downY + oy)
+                            overlay?.addTrail(x + ox, y + oy)
+                            invalidate()
+                        } else if (nk != null && nk !== k && nk.isChar && nk.code != Key.SPACE) {
                             pressed.remove(k)
                             pressed += nk
                             p.key = nk
@@ -471,9 +496,20 @@ class KeyboardView @JvmOverloads constructor(context: Context, attrs: AttributeS
                     }
                 }
             }
+            PMode.GLIDE -> {
+                val (ox, oy) = overlayOffset()
+                overlay?.addTrail(x + ox, y + oy)
+                val nk = findKey(x, y)
+                if (nk != null && nk !== p.lastGlide && isGlideKey(nk)) {
+                    p.path.append(nk.label.lowercase())
+                    p.lastGlide = nk
+                }
+            }
             PMode.DONE -> {}
         }
     }
+
+    private fun isGlideKey(k: Key) = k.isChar && k.code != Key.SPACE && k.label.length == 1 && k.label[0].isLetter()
 
     private fun up(p: Ptr, commit: Boolean) {
         ptrs.remove(p)
@@ -496,6 +532,10 @@ class KeyboardView @JvmOverloads constructor(context: Context, attrs: AttributeS
                 }
             }
             PMode.DELSWIPE -> listener?.onDeleteSwipeEnd(commit && p.words > 0)
+            PMode.GLIDE -> {
+                overlay?.clearTrail()
+                if (commit && p.path.length >= 2) listener?.onGlide(p.path.toString())
+            }
             PMode.SPACE, PMode.DONE -> {}
         }
         invalidate()

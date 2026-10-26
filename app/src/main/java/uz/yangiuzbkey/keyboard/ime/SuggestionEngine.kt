@@ -74,6 +74,46 @@ class SuggestionEngine(private val context: Context) {
         }
     }
 
+    /** Drops the cache and reads the dictionary and learned words again (after an import). */
+    // The file was rewritten by an import (which already merged what was saved); re-read it as is.
+    fun reload(lang: Language) { dirty = false; langId = null; load(lang) }
+
+    /**
+     * Glide typing: [path] is the sequence of letter keys the finger crossed.
+     * A candidate starts and ends on the path's ends and its letters appear
+     * along the path in order.
+     */
+    fun glide(path: String, max: Int = 4): List<String> {
+        if (path.length < 2) return emptyList()
+        val p = path.lowercase(locale)
+        val first = p[0]; val last = p[p.length - 1]
+        val scored = ArrayList<Pair<String, Int>>()
+        val seen = HashSet<String>()
+        fun consider(w: String, base: Int) {
+            if (w.length < 2 || w in seen) return
+            val letters = w.filter { it.isLetter() && it != '\u02BB' }
+            if (letters.isEmpty() || letters[0] != first || letters[letters.length - 1] != last) return
+            var j = 0
+            var prev = ' '
+            for (c in letters) {
+                if (c == prev && j > 0 && p[j - 1] == c) continue
+                while (j < p.length && p[j] != c) j++
+                if (j >= p.length) return
+                j++; prev = c
+            }
+            seen += w
+            val skipped = p.length - letters.length
+            scored += w to base + skipped.coerceAtLeast(0) * 120 - letters.length * 40
+        }
+        synchronized(learned) {
+            for ((w, n) in learned) if (n >= 1) consider(w, -minOf(n, 20) * 400)
+        }
+        val dict = words
+        val n = minOf(dict.size, 60000)
+        for (i in 0 until n) consider(dict[i].lowercase(locale), i / 4)
+        return scored.sortedBy { it.second }.take(max).map { it.first }
+    }
+
     private fun learnedFile(id: String) = File(context.filesDir, "learned_$id.txt")
     private fun bigramFile(id: String) = File(context.filesDir, "bigram_$id.txt")
 
