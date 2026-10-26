@@ -37,6 +37,10 @@ class SettingsActivity : AppCompatActivity() {
             when (preference.key) {
                 "open_themes" -> startActivity(Intent(ctx, ThemesActivity::class.java))
                 "open_languages" -> startActivity(Intent(ctx, LanguagesActivity::class.java))
+                "toolbar_reset" -> {
+                    Prefs(ctx).sp.edit().remove("toolbar_items").apply()
+                    Toast.makeText(ctx, R.string.toolbar_reset_done, Toast.LENGTH_SHORT).show()
+                }
                 "clear_learned" -> MaterialAlertDialogBuilder(ctx)
                     .setTitle(R.string.pref_clear_learned)
                     .setNegativeButton(android.R.string.cancel, null)

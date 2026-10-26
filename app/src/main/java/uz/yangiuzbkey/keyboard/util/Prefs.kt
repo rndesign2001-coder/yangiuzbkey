@@ -14,6 +14,18 @@ class Prefs(context: Context) {
     val langKey get() = sp.getBoolean("lang_key", false)
     val keyPopup get() = sp.getBoolean("key_popup", true)
     val heightPercent get() = sp.getInt("height", 100).coerceIn(70, 150)
+    val navSafe get() = sp.getBoolean("nav_safe", true)
+    val bottomGap get() = sp.getInt("bottom_gap", 0).coerceIn(0, 48)
+
+    /** Toolbar buttons in display order, as SuggestionStrip.Action names. */
+    var toolbarItems: List<String>
+        get() = (sp.getString("toolbar_items", null) ?: DEFAULT_TOOLBAR)
+            .split(',').map { it.trim() }.filter { it.isNotEmpty() }
+        set(v) { sp.edit().putString("toolbar_items", v.joinToString(",")).apply() }
+
+    var screenshots: Boolean
+        get() = sp.getBoolean("clip_screenshots", false)
+        set(v) { sp.edit().putBoolean("clip_screenshots", v).apply() }
 
     val autoConvert get() = sp.getBoolean("auto_convert", true)
     val apostrophe: String get() = sp.getString("apostrophe", "ʼ") ?: "ʼ"
@@ -49,5 +61,6 @@ class Prefs(context: Context) {
 
     companion object {
         const val DEFAULT_LANGS = "uz_new,uz_latn,ru,en"
+        const val DEFAULT_TOOLBAR = "SETTINGS,EMOJI,CLIPBOARD,NUMBERS,THEME,CONVERT,HIDE"
     }
 }

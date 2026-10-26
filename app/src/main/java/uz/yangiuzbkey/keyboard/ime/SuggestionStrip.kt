@@ -20,12 +20,31 @@ import uz.yangiuzbkey.keyboard.util.Transliterator
  */
 class SuggestionStrip(context: Context) : View(context) {
 
-    enum class Action { SETTINGS, EMOJI, CLIPBOARD, NUMBERS, THEME, CONVERT, HIDE, BACK }
+    enum class Action(val icon: Icon, val label: String) {
+        SETTINGS(Icon.GEAR, "Sozlamalar"), EMOJI(Icon.EMOJI, "Emoji"), CLIPBOARD(Icon.CLIPBOARD, "Bufer"),
+        NUMBERS(Icon.NUMBERS, "Raqamlar qatori"), THEME(Icon.PALETTE, "Mavzu"), CONVERT(Icon.CONVERT, "Alifbo"),
+        HIDE(Icon.CHEVRON_DOWN, "Yashirish"), UNDO(Icon.UNDO, "Bekor qilish"), REDO(Icon.REDO, "Qaytarish"),
+        SELECT_ALL(Icon.SELECT_ALL, "Hammasini belgilash"), COPY(Icon.COPY, "Nusxa olish"), CUT(Icon.CUT, "Kesish"),
+        PASTE(Icon.PASTE, "Qo'yish"), CURSOR_LEFT(Icon.BACK, "Kursor chapga"), CURSOR_RIGHT(Icon.NEXT, "Kursor o'ngga"),
+        LANGUAGE(Icon.GLOBE, "Til"), KEYBOARD_PICK(Icon.KEYBOARD, "Klaviatura tanlash"),
+        BACK(Icon.BACK, ""),
+    }
 
     interface Listener {
         fun onSuggestion(word: String)
         fun onToolbar(action: Action)
         fun onConvert(target: String)
+        /** Long-press on the toolbar: open the edit mode. */
+        fun onToolbarEdit()
+    }
+
+    companion object {
+        /** Every action a user may place on the toolbar, in pool order. */
+        val EDITABLE: List<Action> = Action.values().filter { it != Action.BACK }
+
+        fun parse(names: List<String>): List<Action> =
+            names.mapNotNull { n -> runCatching { Action.valueOf(n) }.getOrNull() }
+                .filter { it != Action.BACK }.distinct()
     }
 
     private enum class Mode { TOOLBAR, SUGGEST, CONVERT }
@@ -40,6 +59,9 @@ class SuggestionStrip(context: Context) : View(context) {
         set(v) { if (field != v) { field = v; rebuild() } }
     var toolbarEnabled = true
         set(v) { if (field != v) { field = v; rebuild() } }
+    /** Toolbar buttons in display order. */
+    var items: List<Action> = parse(uz.yangiuzbkey.keyboard.util.Prefs.DEFAULT_TOOLBAR.split(','))
+        set(v) { if (field != v) { field = v; scroll = 0f; rebuild() } }
 
     private val d = resources.displayMetrics.density
     private var mode = Mode.TOOLBAR
@@ -48,6 +70,21 @@ class SuggestionStrip(context: Context) : View(context) {
     private var literal: String? = null
     private val cells = ArrayList<Cell>()
     private var pressed: Cell? = null
+    // Horizontal scroll of the toolbar when its buttons don't all fit.
+    private var scroll = 0f
+    private var contentW = 0f
+    private var downX = 0f
+    private var lastX = 0f
+    private var dragging = false
+    private var longFired = false
+    private val slop = android.view.ViewConfiguration.get(context).scaledTouchSlop
+    private val longPress = Runnable {
+        if (mode == Mode.TOOLBAR && !dragging) {
+            longFired = true; pressed = null; invalidate()
+            performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+            listener?.onToolbarEdit()
+        }
+    }
 
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -100,14 +137,14 @@ class SuggestionStrip(context: Context) : View(context) {
             }
             Mode.TOOLBAR -> {
                 if (!toolbarEnabled) { invalidate(); return }
-                val items = listOf(
-                    Icon.GEAR to Action.SETTINGS, Icon.EMOJI to Action.EMOJI, Icon.CLIPBOARD to Action.CLIPBOARD,
-                    Icon.NUMBERS to Action.NUMBERS, Icon.PALETTE to Action.THEME, Icon.CONVERT to Action.CONVERT,
-                    Icon.CHEVRON_DOWN to Action.HIDE,
-                )
-                val cw = w / items.size
-                items.forEachIndexed { i, (icon, a) ->
-                    cells += Cell(RectF(i * cw, 0f, (i + 1) * cw, h), icon = icon,
+                val list = items
+                if (list.isEmpty()) { contentW = 0f; invalidate(); return }
+                // Equal widths when they fit; otherwise fixed-width buttons that scroll sideways.
+                val cw = maxOf(w / list.size, 48 * d)
+                contentW = cw * list.size
+                scroll = scroll.coerceIn(0f, maxOf(0f, contentW - w))
+                list.forEachIndexed { i, a ->
+                    cells += Cell(RectF(i * cw, 0f, (i + 1) * cw, h), icon = a.icon,
                         active = a == Action.NUMBERS && numberRowOn) { listener?.onToolbar(a) }
                 }
             }
@@ -136,6 +173,9 @@ class SuggestionStrip(context: Context) : View(context) {
         scrimPaint.color = if (lightInk) 0x66000000 else 0x99FFFFFF.toInt()
         val shadow = if (lightInk) 0x99000000.toInt() else 0x66FFFFFF
         if (onImage) textPaint.setShadowLayer(3 * d, 0f, d / 2, shadow) else textPaint.clearShadowLayer()
+        val scrolled = mode == Mode.TOOLBAR && contentW > width
+        canvas.save()
+        if (scrolled) canvas.translate(-scroll, 0f)
         for ((i, c) in cells.withIndex()) {
             val r = c.rect
             if (onImage && c !== pressed && !c.active) {
@@ -164,24 +204,49 @@ class SuggestionStrip(context: Context) : View(context) {
                 canvas.drawRect(r.right - d / 2, r.top + 12 * d, r.right + d / 2, r.bottom - 12 * d, divider)
             }
         }
+        canvas.restore()
+        if (scrolled) {
+            // Thin indicator so people know more buttons are hidden.
+            val w = width.toFloat()
+            val bw = w * w / contentW
+            val bx = (w - bw) * (scroll / (contentW - w))
+            fillPaint.color = (t.stripText and 0x00FFFFFF) or 0x55000000
+            canvas.drawRoundRect(bx, height - 3 * d, bx + bw, height - d, d, d, fillPaint)
+        }
+    }
+
+    private fun hit(x: Float, y: Float): Cell? {
+        val cx = if (mode == Mode.TOOLBAR && contentW > width) x + scroll else x
+        return cells.firstOrNull { it.rect.contains(cx, y) }
     }
 
     override fun onTouchEvent(e: MotionEvent): Boolean {
         when (e.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                pressed = cells.firstOrNull { it.rect.contains(e.x, e.y) }; invalidate()
-                return pressed != null
+                downX = e.x; lastX = e.x; dragging = false; longFired = false
+                pressed = hit(e.x, e.y); invalidate()
+                if (mode == Mode.TOOLBAR && toolbarEnabled) postDelayed(longPress, 500)
+                return pressed != null || mode == Mode.TOOLBAR
             }
             MotionEvent.ACTION_MOVE -> {
+                if (mode == Mode.TOOLBAR && contentW > width && (dragging || kotlin.math.abs(e.x - downX) > slop)) {
+                    if (!dragging) { dragging = true; removeCallbacks(longPress); pressed = null }
+                    scroll = (scroll - (e.x - lastX)).coerceIn(0f, contentW - width)
+                    invalidate()
+                } else if (kotlin.math.abs(e.x - downX) > slop) {
+                    removeCallbacks(longPress)
+                }
+                lastX = e.x
                 val p = pressed
-                if (p != null && !p.rect.contains(e.x, e.y)) { pressed = null; invalidate() }
+                if (p != null && hit(e.x, e.y) !== p) { pressed = null; invalidate() }
             }
             MotionEvent.ACTION_UP -> {
+                removeCallbacks(longPress)
                 val p = pressed
                 pressed = null; invalidate()
-                if (p != null && p.rect.contains(e.x, e.y)) { performClick(); p.onTap() }
+                if (!longFired && !dragging && p != null && hit(e.x, e.y) === p) { performClick(); p.onTap() }
             }
-            MotionEvent.ACTION_CANCEL -> { pressed = null; invalidate() }
+            MotionEvent.ACTION_CANCEL -> { removeCallbacks(longPress); pressed = null; invalidate() }
         }
         return true
     }

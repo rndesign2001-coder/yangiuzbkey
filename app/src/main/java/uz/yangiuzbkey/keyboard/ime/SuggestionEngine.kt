@@ -22,6 +22,9 @@ class SuggestionEngine(private val context: Context) {
     @Volatile private var words: Array<String> = emptyArray()
     @Volatile private var rank: HashMap<String, Int> = HashMap()
     private val learned = LinkedHashMap<String, Int>()
+    /** Learned word pairs: previous word -> (next word -> count). */
+    private val bigrams = HashMap<String, HashMap<String, Int>>()
+    private var bigramCount = 0
     private var locale: Locale = Locale.ROOT
     private var dirty = false
 
@@ -31,7 +34,7 @@ class SuggestionEngine(private val context: Context) {
         langId = lang.id
         locale = lang.locale
         words = emptyArray(); rank = HashMap()
-        synchronized(learned) { learned.clear() }
+        synchronized(learned) { learned.clear(); bigrams.clear(); bigramCount = 0 }
         val id = lang.id
         io.execute {
             val list = try {
@@ -49,14 +52,69 @@ class SuggestionEngine(private val context: Context) {
                     if (tab > 0) l[line.substring(0, tab)] = line.substring(tab + 1).toIntOrNull() ?: 1
                 }
             } catch (_: Exception) {}
+            val bg = HashMap<String, HashMap<String, Int>>()
+            var bc = 0
+            val bigramFile = bigramFile(id)
+            if (bigramFile.exists()) try {
+                bigramFile.forEachLine { line ->
+                    val parts = line.split('\t')
+                    if (parts.size == 3) {
+                        bg.getOrPut(parts[0]) { HashMap() }[parts[1]] = parts[2].toIntOrNull() ?: 1
+                        bc++
+                    }
+                }
+            } catch (_: Exception) {}
             if (langId == id) {
                 words = list.toTypedArray(); rank = r
-                synchronized(learned) { learned.clear(); learned.putAll(l) }
+                synchronized(learned) {
+                    learned.clear(); learned.putAll(l)
+                    bigrams.clear(); bigrams.putAll(bg); bigramCount = bc
+                }
             }
         }
     }
 
     private fun learnedFile(id: String) = File(context.filesDir, "learned_$id.txt")
+    private fun bigramFile(id: String) = File(context.filesDir, "bigram_$id.txt")
+
+    /** Remembers that [next] followed [prev], for next-word prediction. */
+    fun learnPair(prev: String, next: String) {
+        if (prev.isEmpty() || next.length < 2 || next.any { it.isDigit() } || prev.any { it.isDigit() }) return
+        val a = prev.lowercase(locale); val b = next.lowercase(locale)
+        synchronized(learned) {
+            val m = bigrams.getOrPut(a) { HashMap() }
+            val old = m[b]
+            if (old == null) {
+                if (bigramCount >= MAX_BIGRAMS) trimBigrams()
+                bigramCount++
+            }
+            m[b] = (old ?: 0) + 1
+        }
+        dirty = true
+    }
+
+    /** Drops pairs seen only once (the long tail) when the table is full. */
+    private fun trimBigrams() {
+        val it = bigrams.entries.iterator()
+        while (it.hasNext()) {
+            val e = it.next()
+            val before = e.value.size
+            e.value.entries.removeAll { x -> x.value <= 1 }
+            bigramCount -= before - e.value.size
+            if (e.value.isEmpty()) it.remove()
+        }
+        if (bigramCount >= MAX_BIGRAMS) { bigrams.clear(); bigramCount = 0 }
+    }
+
+    /** Words the user usually types after [prev], most frequent first. */
+    fun predict(prev: String, max: Int = 3): List<String> {
+        val p = prev.lowercase(locale)
+        val hits = synchronized(learned) {
+            bigrams[p]?.entries?.sortedByDescending { it.value }?.take(max)?.map { it.key }
+        } ?: emptyList()
+        val capital = prev.firstOrNull()?.isUpperCase() == true && prev.length > 1 && prev.drop(1).any { it.isUpperCase() }
+        return hits.map { if (capital) it.uppercase(locale) else it }
+    }
 
     fun isKnown(word: String): Boolean {
         val w = word.lowercase(locale)
@@ -84,17 +142,25 @@ class SuggestionEngine(private val context: Context) {
         if (!dirty) return
         dirty = false
         val snapshot = synchronized(learned) { learned.entries.map { it.key to it.value } }
+        val pairs = synchronized(learned) {
+            val sb = StringBuilder()
+            for ((a, m) in bigrams) for ((b, c) in m) sb.append(a).append('\t').append(b).append('\t').append(c).append('\n')
+            sb.toString()
+        }
         io.execute {
             try {
                 learnedFile(id).writeText(snapshot.joinToString("\n") { "${it.first}\t${it.second}" })
+                bigramFile(id).writeText(pairs)
             } catch (_: Exception) {}
         }
     }
 
     fun clearLearned() {
-        synchronized(learned) { learned.clear() }
+        synchronized(learned) { learned.clear(); bigrams.clear(); bigramCount = 0 }
         dirty = false
-        io.execute { context.filesDir.listFiles()?.filter { it.name.startsWith("learned_") }?.forEach { it.delete() } }
+        io.execute {
+            context.filesDir.listFiles()?.filter { it.name.startsWith("learned_") || it.name.startsWith("bigram_") }?.forEach { it.delete() }
+        }
     }
 
     /**
@@ -109,7 +175,7 @@ class SuggestionEngine(private val context: Context) {
 
         // 1. Learned words with this prefix (most used first).
         val learnedHits = synchronized(learned) {
-            learned.entries.filter { it.key.startsWith(low) && it.key != low && it.value >= 2 }
+            learned.entries.filter { it.key.startsWith(low) && it.key != low && it.value >= 1 }
                 .sortedByDescending { it.value }.take(max).map { it.key }
         }
         // 2. Dictionary completions in frequency order.
@@ -155,6 +221,8 @@ class SuggestionEngine(private val context: Context) {
         val dict = words
         return dict.asSequence().filter { it.length > 1 }.take(max).toList()
     }
+
+    private companion object { const val MAX_BIGRAMS = 20000 }
 
     private fun applyCase(typed: String, w: String): String {
         if (typed.length > 1 && typed.all { !it.isLetter() || it.isUpperCase() }) return w.uppercase(locale)

@@ -121,4 +121,22 @@
     <string name="move_up">Yuqoriga</string>
     <string name="move_down">Pastga</string>
     <string name="ok">OK</string>
+    <string name="pref_nav_safe">Navigatsiya paneliga moslash</string>
+    <string name="pref_nav_safe_sum">Tizim tugmalari (klaviatura almashtirish, orqaga) tugmalar ustiga chiqmasligi uchun pastdan joy qoldiradi</string>
+    <string name="pref_bottom_gap">Pastki boʻshliq (dp)</string>
+    <string name="pref_bottom_gap_sum">Kerak boʻlsa klaviaturani yana biroz yuqoriga koʻtaradi</string>
+    <string name="pref_toolbar_reset">Asboblar panelini tiklash</string>
+    <string name="pref_toolbar_reset_sum">Tahrirlash: panelni bosib turing. Bu yerda standart tartibga qaytariladi</string>
+    <string name="toolbar_reset_done">Asboblar paneli tiklandi</string>
+    <string name="toolbar_edit_title">Panelni tahrirlash</string>
+    <string name="toolbar_edit_hint">− olib tashlash · ◀ ▶ joyini almashtirish</string>
+    <string name="toolbar_available">Mavjud tugmalar</string>
+    <string name="toolbar_done">Tayyor</string>
+    <string name="toolbar_none">Hammasi panelda</string>
+    <string name="clip_screens">Skrinshotlar</string>
+    <string name="clip_screens_on">Skrinshot saqlash yoqildi (1 soat)</string>
+    <string name="clip_screens_off">Skrinshot saqlash oʻchirildi</string>
+    <string name="clip_screens_perm">Ruxsat bering: Sozlamalar ilovasida rasmlarga ruxsat soʻraladi</string>
+    <string name="clip_image_copied">Rasm buferga nusxalandi</string>
+    <string name="copied">Nusxalandi</string>
 </resources>

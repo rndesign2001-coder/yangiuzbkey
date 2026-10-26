@@ -9,7 +9,7 @@ import android.graphics.RectF
  * Vector icons drawn straight onto a canvas, designed on a 24×24 grid.
  * Strokes scale with the icon so they stay crisp on every density.
  */
-enum class Icon { SHIFT, SHIFT_ON, CAPS, DELETE, ENTER, SEARCH, SEND, DONE, NEXT, GLOBE, EMOJI, GEAR, CLIPBOARD, PALETTE, CHEVRON_DOWN, CONVERT, CLOSE, TRASH, NUMBERS, BACK, KEYBOARD, PIN }
+enum class Icon { SHIFT, SHIFT_ON, CAPS, DELETE, ENTER, SEARCH, SEND, DONE, NEXT, GLOBE, EMOJI, GEAR, CLIPBOARD, PALETTE, CHEVRON_DOWN, CONVERT, CLOSE, TRASH, NUMBERS, BACK, KEYBOARD, PIN, UNDO, REDO, COPY, PASTE, CUT, SELECT_ALL, IMAGE, PLUS }
 
 object Icons {
     private val path = Path()
@@ -140,6 +140,48 @@ object Icons {
                 path.moveTo(9f, 3.5f); path.lineTo(15f, 3.5f); path.lineTo(14f, 10f); path.lineTo(17.5f, 14f)
                 path.lineTo(6.5f, 14f); path.lineTo(10f, 10f); path.close()
                 c.drawPath(path, stroke); c.drawLine(12f, 14f, 12f, 21f, stroke)
+            }
+            Icon.UNDO, Icon.REDO -> {
+                if (icon == Icon.REDO) { c.scale(-1f, 1f, 12f, 12f) }
+                path.moveTo(9f, 5f); path.lineTo(4.5f, 9.5f); path.lineTo(9f, 14f); c.drawPath(path, stroke)
+                path.reset(); path.moveTo(4.5f, 9.5f); path.lineTo(14.5f, 9.5f)
+                path.cubicTo(17.8f, 9.5f, 20f, 11.8f, 20f, 14.75f); path.cubicTo(20f, 17.7f, 17.8f, 20f, 14.5f, 20f)
+                path.lineTo(10f, 20f); c.drawPath(path, stroke)
+            }
+            Icon.COPY -> {
+                oval.set(8.5f, 8.5f, 20.5f, 20.5f); c.drawRoundRect(oval, 2f, 2f, stroke)
+                path.moveTo(5.5f, 15.5f); path.lineTo(5f, 15.5f); path.quadTo(3.5f, 15.5f, 3.5f, 14f); path.lineTo(3.5f, 5f)
+                path.quadTo(3.5f, 3.5f, 5f, 3.5f); path.lineTo(14f, 3.5f); path.quadTo(15.5f, 3.5f, 15.5f, 5f); path.lineTo(15.5f, 5.5f)
+                c.drawPath(path, stroke)
+            }
+            Icon.PASTE -> {
+                path.moveTo(8f, 4.5f); path.lineTo(6f, 4.5f); path.quadTo(4.5f, 4.5f, 4.5f, 6f); path.lineTo(4.5f, 20f)
+                path.quadTo(4.5f, 21.5f, 6f, 21.5f); path.lineTo(18f, 21.5f); path.quadTo(19.5f, 21.5f, 19.5f, 20f)
+                path.lineTo(19.5f, 6f); path.quadTo(19.5f, 4.5f, 18f, 4.5f); path.lineTo(16f, 4.5f)
+                c.drawPath(path, stroke)
+                oval.set(8f, 2.5f, 16f, 6.5f); c.drawRoundRect(oval, 1.5f, 1.5f, stroke)
+                path.reset(); path.moveTo(12f, 9.5f); path.lineTo(12f, 17.5f); path.moveTo(8.5f, 14f); path.lineTo(12f, 17.5f); path.lineTo(15.5f, 14f)
+                c.drawPath(path, stroke)
+            }
+            Icon.CUT -> {
+                c.drawCircle(7f, 17.5f, 3f, stroke); c.drawCircle(17f, 17.5f, 3f, stroke)
+                c.drawLine(9f, 15.3f, 18f, 3.5f, stroke); c.drawLine(15f, 15.3f, 6f, 3.5f, stroke)
+            }
+            Icon.SELECT_ALL -> {
+                stroke.strokeWidth = 1.8f
+                stroke.pathEffect = android.graphics.DashPathEffect(floatArrayOf(2.5f, 2.5f), 0f)
+                oval.set(3.5f, 3.5f, 20.5f, 20.5f); c.drawRoundRect(oval, 2f, 2f, stroke)
+                stroke.pathEffect = null
+                oval.set(8f, 8f, 16f, 16f); c.drawRect(oval, fill)
+            }
+            Icon.IMAGE -> {
+                oval.set(3.5f, 4.5f, 20.5f, 19.5f); c.drawRoundRect(oval, 2.5f, 2.5f, stroke)
+                c.drawCircle(9f, 9.5f, 1.6f, fill)
+                path.moveTo(4f, 17f); path.lineTo(9.5f, 12.5f); path.lineTo(13f, 15.5f); path.lineTo(15.5f, 13.5f); path.lineTo(20f, 17.5f)
+                c.drawPath(path, stroke)
+            }
+            Icon.PLUS -> {
+                c.drawLine(12f, 5f, 12f, 19f, stroke); c.drawLine(5f, 12f, 19f, 12f, stroke)
             }
         }
         c.restore()

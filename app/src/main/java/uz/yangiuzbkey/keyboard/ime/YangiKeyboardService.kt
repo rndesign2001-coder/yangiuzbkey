@@ -42,7 +42,7 @@ import uz.yangiuzbkey.keyboard.util.Transliterator
  * suggestions, autocorrect and new-alphabet conversion can rewrite it.
  */
 class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, SuggestionStrip.Listener,
-    EmojiPanel.Listener, ClipboardPanel.Listener, SharedPreferences.OnSharedPreferenceChangeListener {
+    EmojiPanel.Listener, ClipboardPanel.Listener, ToolbarEditPanel.Listener, SharedPreferences.OnSharedPreferenceChangeListener {
 
     private lateinit var prefs: Prefs
     private lateinit var engine: SuggestionEngine
@@ -54,6 +54,7 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
     private lateinit var kv: KeyboardView
     private lateinit var emoji: EmojiPanel
     private lateinit var clipPanel: ClipboardPanel
+    private lateinit var tbEdit: ToolbarEditPanel
     private lateinit var overlay: OverlayView
 
     private var lang: Language = Languages.all.first()
@@ -73,6 +74,7 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
     private var layoutDirty = true
     private var styleDirty = true
     private var swipeWords = 0
+    private var navInset = 0
 
     private val clipListener = ClipboardManager.OnPrimaryClipChangedListener { clipboard?.let { clipHistory.capture(it) } }
 
@@ -118,18 +120,16 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
         body.addView(kv, FrameLayout.LayoutParams(mp, ViewGroup.LayoutParams.WRAP_CONTENT))
         body.addView(emoji, FrameLayout.LayoutParams(mp, mp))
         body.addView(clipPanel, FrameLayout.LayoutParams(mp, mp))
+        tbEdit = ToolbarEditPanel(this).also { it.listener = this; it.visibility = View.GONE }
+        body.addView(tbEdit, FrameLayout.LayoutParams(mp, mp))
         column.addView(strip, LinearLayout.LayoutParams(mp, ViewGroup.LayoutParams.WRAP_CONTENT))
         column.addView(body, LinearLayout.LayoutParams(mp, ViewGroup.LayoutParams.WRAP_CONTENT))
         frame.addView(column, FrameLayout.LayoutParams(mp, ViewGroup.LayoutParams.WRAP_CONTENT))
         frame.addView(overlay, FrameLayout.LayoutParams(mp, mp))
         if (Build.VERSION.SDK_INT >= 20) {
-            frame.setOnApplyWindowInsetsListener { v, insets ->
-                val bottom = if (Build.VERSION.SDK_INT >= 30) {
-                    insets.getInsets(android.view.WindowInsets.Type.navigationBars()).bottom
-                } else {
-                    @Suppress("DEPRECATION") insets.systemWindowInsetBottom
-                }
-                if (v.paddingBottom != bottom) v.setPadding(0, 0, 0, bottom)
+            frame.setOnApplyWindowInsetsListener { _, insets ->
+                navInset = computeBottom(insets)
+                applyBottomPadding()
                 insets
             }
         }
@@ -139,6 +139,7 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
     }
 
     override fun onStartInputView(info: EditorInfo, restarting: Boolean) {
+        if (!restarting) lastWord = ""
         super.onStartInputView(info, restarting)
         clipboard?.let { clipHistory.capture(it) }
         val cls = info.inputType and InputType.TYPE_MASK_CLASS
@@ -192,6 +193,65 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
         if (composing.isEmpty()) updateShift()
     }
 
+    /**
+     * Bottom space the system needs below the keys. Gesture-nav phones (Honor,
+     * Xiaomi, Pixel on Android 15+) draw a back / keyboard-switch button row
+     * over the IME that is taller than the reported navigation bar inset, so
+     * we take the largest of every bottom inset and the system bar frame height.
+     */
+    private fun computeBottom(insets: android.view.WindowInsets): Int {
+        var bottom = when {
+            Build.VERSION.SDK_INT >= 30 -> {
+                maxOf(insets.getInsets(android.view.WindowInsets.Type.navigationBars()).bottom,
+                    insets.getInsets(android.view.WindowInsets.Type.tappableElement()).bottom,
+                    insets.getInsets(android.view.WindowInsets.Type.mandatorySystemGestures()).bottom)
+            }
+            Build.VERSION.SDK_INT >= 29 -> @Suppress("DEPRECATION") maxOf(insets.systemWindowInsetBottom,
+                insets.tappableElementInsets.bottom, insets.mandatorySystemGestureInsets.bottom)
+            else -> @Suppress("DEPRECATION") insets.systemWindowInsetBottom
+        }
+        if (prefs.navSafe && bottom > 0) bottom = maxOf(bottom, navFrameHeight())
+        return bottom
+    }
+
+    private fun navFrameHeight(): Int {
+        for (name in arrayOf("navigation_bar_frame_height", "navigation_bar_height")) {
+            val id = resources.getIdentifier(name, "dimen", "android")
+            if (id != 0) {
+                val h = try { resources.getDimensionPixelSize(id) } catch (_: Exception) { 0 }
+                if (h > 0) return h
+            }
+        }
+        return 0
+    }
+
+    private fun applyBottomPadding() {
+        val v = root ?: return
+        val bottom = navInset + (prefs.bottomGap * resources.displayMetrics.density).toInt()
+        if (v.paddingBottom != bottom) v.setPadding(0, 0, 0, bottom)
+    }
+
+    /** Paints the system navigation bar in the keyboard colour so buttons stay visible. */
+    private fun applyNavBarColor(bg: Int) {
+        val w = window?.window ?: return
+        try {
+            if (Build.VERSION.SDK_INT >= 29) w.isNavigationBarContrastEnforced = false
+            @Suppress("DEPRECATION")
+            w.navigationBarColor = bg
+            val light = (0.299 * ((bg shr 16) and 0xFF) + 0.587 * ((bg shr 8) and 0xFF) + 0.114 * (bg and 0xFF)) / 255 > 0.6
+            if (Build.VERSION.SDK_INT >= 30) {
+                val f = android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
+                w.insetsController?.setSystemBarsAppearance(if (light) f else 0, f)
+            } else if (Build.VERSION.SDK_INT >= 26) {
+                @Suppress("DEPRECATION")
+                val flags = w.decorView.systemUiVisibility
+                @Suppress("DEPRECATION")
+                w.decorView.systemUiVisibility = if (light) flags or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+                    else flags and View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR.inv()
+            }
+        } catch (_: Exception) {}
+    }
+
     // ---------------------------------------------------------------- setup
 
     private fun applySettings(force: Boolean = false) {
@@ -199,7 +259,8 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
         if (styleDirty || force) {
             val st = ThemeManager.resolve(this, prefs)
             root?.style = st; kv.setStyle(st); strip.style = st
-            emoji.setStyle(st); clipPanel.setStyle(st)
+            emoji.setStyle(st); clipPanel.setStyle(st); tbEdit.setStyle(st)
+            applyNavBarColor(st.theme.bg)
             strip.invalidate(); root?.invalidate()
             styleDirty = false
         }
@@ -212,6 +273,8 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
         kv.locale = lang.locale
         strip.numberRowOn = prefs.numberRow
         strip.toolbarEnabled = prefs.toolbar
+        strip.items = SuggestionStrip.parse(prefs.toolbarItems)
+        applyBottomPadding()
         val alpha = LayoutBuilder.alpha(lang, prefs, prefs.languages.size > 1, variant, password)
         val sym = LayoutBuilder.symbols(lang, prefs, false, variant)
         kv.minContentHeight = if (mode == Mode.ALPHA || mode == Mode.SYMBOLS || mode == Mode.SYMBOLS2)
@@ -336,7 +399,8 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
         }
         ic.commitText(word + sep, 1)
         if (word != original) revert = (word + sep) to original
-        if (!password && prefs.learn && !noSuggest) engine.learn(word)
+        if (!password && prefs.learn && !noSuggest) { engine.learnPair(lastWord, word); engine.learn(word) }
+        lastWord = if (sep.isNotEmpty() && sep.first() in ".!?\n") "" else word
         composing.setLength(0)
         showIdleSuggestions()
     }
@@ -545,20 +609,32 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
         strip.setSuggestions(r.words, if (prefs.autocorrect) r.autocorrect else null, typed)
     }
 
+    /** Last committed word in this field, used for next-word prediction. */
+    private var lastWord = ""
+
     private fun showIdleSuggestions() {
         if (!::strip.isInitialized) return
-        strip.setSuggestions(emptyList(), null, "")
+        if (noSuggest || password || !prefs.suggestions) { strip.setSuggestions(emptyList(), null, ""); return }
+        val before = currentInputConnection?.getTextBeforeCursor(64, 0)?.toString() ?: ""
+        // Predict only right after "word " - not mid-word and not after a sentence end.
+        val prev = PREV_WORD.find(before)?.groupValues?.get(1) ?: ""
+        val next = if (prev.isEmpty()) emptyList() else engine.predict(prev, 3)
+        strip.setSuggestions(next, null, null)
     }
 
     override fun onSuggestion(word: String) {
         val ic = currentInputConnection ?: return
         revert = null
-        if (composing.isEmpty()) { ic.commitText("$word ", 1) }
+        if (composing.isEmpty()) {
+            ic.commitText("$word ", 1)
+            if (prefs.learn && !password) engine.learnPair(lastWord, word)
+        }
         else {
             ic.commitText("$word ", 1)
-            if (prefs.learn && !password) engine.learn(word)
+            if (prefs.learn && !password) { engine.learnPair(lastWord, word); engine.learn(word) }
             composing.setLength(0)
         }
+        lastWord = word
         updateShift(); showIdleSuggestions()
     }
 
@@ -572,7 +648,32 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
             SuggestionStrip.Action.CONVERT -> { finishComposing(); strip.showConvert() }
             SuggestionStrip.Action.HIDE -> requestHideSelf(0)
             SuggestionStrip.Action.BACK -> { closePanels(); strip.showToolbar() }
+            SuggestionStrip.Action.UNDO -> ctrlKey(KeyEvent.KEYCODE_Z, false)
+            SuggestionStrip.Action.REDO -> ctrlKey(KeyEvent.KEYCODE_Z, true)
+            SuggestionStrip.Action.SELECT_ALL -> contextAction(android.R.id.selectAll)
+            SuggestionStrip.Action.COPY -> contextAction(android.R.id.copy)
+            SuggestionStrip.Action.CUT -> contextAction(android.R.id.cut)
+            SuggestionStrip.Action.PASTE -> contextAction(android.R.id.paste)
+            SuggestionStrip.Action.CURSOR_LEFT -> { finishComposing(); sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_LEFT) }
+            SuggestionStrip.Action.CURSOR_RIGHT -> { finishComposing(); sendDownUpKeyEvents(KeyEvent.KEYCODE_DPAD_RIGHT) }
+            SuggestionStrip.Action.LANGUAGE -> { finishComposing(); nextLanguage() }
+            SuggestionStrip.Action.KEYBOARD_PICK ->
+                (getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager)?.showInputMethodPicker()
         }
+    }
+
+    private fun ctrlKey(code: Int, shift: Boolean) {
+        val ic = currentInputConnection ?: return
+        finishComposing()
+        val meta = KeyEvent.META_CTRL_ON or KeyEvent.META_CTRL_LEFT_ON or (if (shift) KeyEvent.META_SHIFT_ON else 0)
+        val t = SystemClock.uptimeMillis()
+        ic.sendKeyEvent(KeyEvent(t, t, KeyEvent.ACTION_DOWN, code, 0, meta))
+        ic.sendKeyEvent(KeyEvent(t, t, KeyEvent.ACTION_UP, code, 0, meta))
+    }
+
+    private fun contextAction(id: Int) {
+        finishComposing()
+        currentInputConnection?.performContextMenuAction(id)
     }
 
     override fun onConvert(target: String) {
@@ -602,7 +703,7 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
 
     private fun openEmoji() {
         finishComposing()
-        clipPanel.visibility = View.GONE
+        clipPanel.visibility = View.GONE; tbEdit.visibility = View.GONE
         emoji.visibility = View.VISIBLE; emoji.open()
         kv.cancelAll(); kv.visibility = View.INVISIBLE
     }
@@ -610,14 +711,14 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
     private fun openClipboard() {
         finishComposing()
         clipboard?.let { clipHistory.capture(it) }
-        emoji.visibility = View.GONE
+        emoji.visibility = View.GONE; tbEdit.visibility = View.GONE
         clipPanel.visibility = View.VISIBLE; clipPanel.refresh()
         kv.cancelAll(); kv.visibility = View.INVISIBLE
     }
 
     private fun closePanels() {
         if (!::kv.isInitialized) return
-        emoji.visibility = View.GONE; clipPanel.visibility = View.GONE
+        emoji.visibility = View.GONE; clipPanel.visibility = View.GONE; tbEdit.visibility = View.GONE
         kv.visibility = View.VISIBLE
     }
 
@@ -632,9 +733,51 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
 
     override fun onEmojiClose() { closePanels() }
 
+    override fun onImagePaste(uri: android.net.Uri) {
+        val store = ScreenshotStore(this)
+        val shot = store.recent().firstOrNull { it.uri == uri }
+        val shared = shot?.let { store.share(it) }
+        if (shared == null) { closePanels(); return }
+        val ei = currentInputEditorInfo
+        val ic = currentInputConnection
+        val accepts = ei != null && androidx.core.view.inputmethod.EditorInfoCompat.getContentMimeTypes(ei)
+            .any { android.content.ClipDescription.compareMimeTypes("image/png", it) }
+        var sent = false
+        if (accepts && ic != null) {
+            val info = androidx.core.view.inputmethod.InputContentInfoCompat(shared,
+                android.content.ClipDescription("Screenshot", arrayOf("image/png")), null)
+            val flags = if (Build.VERSION.SDK_INT >= 25)
+                androidx.core.view.inputmethod.InputConnectionCompat.INPUT_CONTENT_GRANT_READ_URI_PERMISSION else 0
+            sent = androidx.core.view.inputmethod.InputConnectionCompat.commitContent(ic, ei!!, info, flags, null)
+        }
+        if (!sent) {
+            try {
+                (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
+                    .setPrimaryClip(android.content.ClipData.newUri(contentResolver, "Screenshot", shared))
+                Toast.makeText(this, R.string.clip_image_copied, Toast.LENGTH_SHORT).show()
+            } catch (_: Exception) { }
+        }
+        closePanels()
+    }
+
     override fun onClipPaste(text: String) { currentInputConnection?.commitText(text, 1); closePanels() }
 
     override fun onClipClose() { closePanels() }
+
+    override fun onToolbarEdit() {
+        if (!::kv.isInitialized) return
+        finishComposing()
+        emoji.visibility = View.GONE; clipPanel.visibility = View.GONE
+        tbEdit.visibility = View.VISIBLE; tbEdit.open(strip.items)
+        kv.cancelAll(); kv.visibility = View.INVISIBLE
+    }
+
+    override fun onToolbarEditDone(items: List<SuggestionStrip.Action>) {
+        prefs.toolbarItems = items.map { it.name }
+        strip.items = items
+        strip.showToolbar()
+        closePanels()
+    }
 
     private fun launch(cls: Class<*>) {
         finishComposing()
@@ -645,5 +788,9 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
     override fun onWindowShown() {
         super.onWindowShown()
         if (layoutDirty || styleDirty) applySettings()
+    }
+
+    private companion object {
+        val PREV_WORD = Regex("([\\p{L}'ʼ‘’-]+) $")
     }
 }

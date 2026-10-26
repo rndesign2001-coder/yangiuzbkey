@@ -3,6 +3,10 @@ package uz.yangiuzbkey.keyboard.ime
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.widget.ImageView
+import android.widget.Toast
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
@@ -23,7 +27,9 @@ import org.json.JSONObject
 import uz.yangiuzbkey.keyboard.R
 import uz.yangiuzbkey.keyboard.keyboard.Icon
 import uz.yangiuzbkey.keyboard.keyboard.Icons
+import uz.yangiuzbkey.keyboard.settings.ScreenshotPermissionActivity
 import uz.yangiuzbkey.keyboard.theme.ResolvedStyle
+import uz.yangiuzbkey.keyboard.util.Prefs
 import java.io.File
 
 /** Clipboard history kept on the device only (never synced or uploaded). */
@@ -99,6 +105,7 @@ class ClipboardPanel(context: Context, private val history: ClipboardHistory) : 
     interface Listener {
         fun onClipPaste(text: String)
         fun onClipClose()
+        fun onImagePaste(uri: Uri)
     }
 
     var listener: Listener? = null
@@ -113,6 +120,8 @@ class ClipboardPanel(context: Context, private val history: ClipboardHistory) : 
         val p = (24 * d).toInt(); setPadding(p, p, p, p)
     }
     private val body = FrameLayout(context)
+    private val prefs = Prefs(context)
+    private val shots = ScreenshotStore(context)
 
     /** Edit mode shows pin / delete badges on every card. */
     private var editing = false
@@ -132,6 +141,8 @@ class ClipboardPanel(context: Context, private val history: ClipboardHistory) : 
 
     fun setStyle(s: ResolvedStyle) { style = s; header.invalidate(); refresh() }
 
+    override fun onAttachedToWindow() { super.onAttachedToWindow(); refresh() }
+
     override fun onVisibilityChanged(changedView: View, visibility: Int) {
         super.onVisibilityChanged(changedView, visibility)
         if (changedView === this && visibility != VISIBLE && editing) { editing = false; header.invalidate() }
@@ -143,8 +154,13 @@ class ClipboardPanel(context: Context, private val history: ClipboardHistory) : 
         val all = history.sorted()
         val recent = all.filter { !it.pinned }
         val pinned = all.filter { it.pinned }
-        empty.visibility = if (all.isEmpty()) VISIBLE else GONE
+        val recentShots = if (prefs.screenshots) shots.recent() else emptyList()
+        empty.visibility = if (all.isEmpty() && recentShots.isEmpty()) VISIBLE else GONE
         st?.let { empty.setTextColor(it.theme.hint) }
+        if (recentShots.isNotEmpty()) {
+            addSection(R.string.clip_screens, 0, null)
+            addShotGrid(recentShots)
+        }
         if (recent.isNotEmpty()) {
             val more = recent.size > COLLAPSED
             val toggle = if (!more) 0 else if (showAllRecent) R.string.clip_show_less else R.string.clip_show_more
@@ -188,6 +204,51 @@ class ClipboardPanel(context: Context, private val history: ClipboardHistory) : 
             }
             list.addView(row, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         }
+    }
+
+    private fun addShotGrid(items: List<ScreenshotStore.Shot>) {
+        val m = (4 * d).toInt()
+        val px = (128 * d).toInt()
+        for (chunk in items.chunked(COLUMNS)) {
+            val row = LinearLayout(context).apply { orientation = HORIZONTAL }
+            for (k in 0 until COLUMNS) {
+                val lp = LayoutParams(0, (110 * d).toInt(), 1f).apply { setMargins(m, m, m, m) }
+                val shot = chunk.getOrNull(k)
+                row.addView(if (shot != null) shotCard(shot, px) else View(context), lp)
+            }
+            list.addView(row, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+        }
+    }
+
+    private fun shotCard(shot: ScreenshotStore.Shot, px: Int): View {
+        val t = style?.theme
+        val img = ImageView(context).apply {
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            background = GradientDrawable().apply { cornerRadius = 14 * d; setColor(t?.keyBg ?: 0xFF2B2B2B.toInt()) }
+            clipToOutline = true
+            isClickable = true
+            setOnClickListener { listener?.onImagePaste(shot.uri) }
+        }
+        shots.thumbnail(shot, px) { bmp -> if (bmp != null) img.setImageBitmap(bmp) }
+        return img
+    }
+
+    /** Toggles screenshot saving; asks for the gallery permission through an activity when needed. */
+    private fun toggleScreenshots() {
+        if (prefs.screenshots) {
+            prefs.screenshots = false
+            Toast.makeText(context, R.string.clip_screens_off, Toast.LENGTH_SHORT).show()
+        } else if (shots.hasPermission()) {
+            prefs.screenshots = true
+            Toast.makeText(context, R.string.clip_screens_on, Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, R.string.clip_screens_perm, Toast.LENGTH_LONG).show()
+            try {
+                context.startActivity(Intent(context, ScreenshotPermissionActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            } catch (_: Exception) { }
+        }
+        refresh()
     }
 
     private fun card(item: ClipboardHistory.Item): View {
@@ -241,8 +302,8 @@ class ClipboardPanel(context: Context, private val history: ClipboardHistory) : 
     private inner class Header(context: Context) : View(context) {
         private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
         private val fill = Paint(Paint.ANTI_ALIAS_FLAG)
-        private var pressed = 0 // 1 = back, 2 = pin, 3 = trash
-        private val back = RectF(); private val pin = RectF(); private val trash = RectF()
+        private var pressed = 0 // 1 = back, 2 = pin, 3 = trash, 4 = screenshots
+        private val back = RectF(); private val pin = RectF(); private val trash = RectF(); private val shot = RectF()
 
         override fun onDraw(canvas: Canvas) {
             val st = style ?: return
@@ -251,7 +312,8 @@ class ClipboardPanel(context: Context, private val history: ClipboardHistory) : 
             val h = height.toFloat(); val w = width.toFloat()
             back.set(0f, 0f, 56 * d, h)
             trash.set(w - 52 * d, 0f, w - 4 * d, h); pin.set(trash.left - 48 * d, 0f, trash.left, h)
-            val rects = listOf(back, pin, trash)
+            shot.set(pin.left - 48 * d, 0f, pin.left, h)
+            val rects = listOf(back, pin, trash, shot)
             for ((i, r) in rects.withIndex()) {
                 val on = pressed == i + 1 || (i == 1 && editing)
                 if (on || st.background != null) {
@@ -267,10 +329,11 @@ class ClipboardPanel(context: Context, private val history: ClipboardHistory) : 
             canvas.drawText(context.getString(R.string.tb_clipboard), back.right + 14 * d, h / 2 - (paint.descent() + paint.ascent()) / 2, paint)
             Icons.draw(canvas, Icon.PIN, pin.centerX(), pin.centerY(), 20 * d, if (editing) t.accent else t.stripText)
             Icons.draw(canvas, Icon.TRASH, trash.centerX(), trash.centerY(), 20 * d, t.stripText)
+            Icons.draw(canvas, Icon.IMAGE, shot.centerX(), shot.centerY(), 20 * d, if (prefs.screenshots) t.accent else t.stripText)
         }
 
         private fun hit(x: Float, y: Float) = when {
-            back.contains(x, y) -> 1; pin.contains(x, y) -> 2; trash.contains(x, y) -> 3; else -> 0
+            back.contains(x, y) -> 1; pin.contains(x, y) -> 2; trash.contains(x, y) -> 3; shot.contains(x, y) -> 4; else -> 0
         }
 
         override fun onTouchEvent(e: MotionEvent): Boolean {
@@ -283,6 +346,7 @@ class ClipboardPanel(context: Context, private val history: ClipboardHistory) : 
                         when (p) {
                             1 -> { editing = false; listener?.onClipClose() }
                             2 -> { editing = !editing; refresh() }
+                            4 -> toggleScreenshots()
                             else -> { history.clearUnpinned(); refresh() }
                         }
                     }

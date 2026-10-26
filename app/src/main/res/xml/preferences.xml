@@ -50,6 +50,26 @@
             app:showSeekBarValue="true"
             app:title="@string/pref_height"
             app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat
+            app:key="nav_safe"
+            app:defaultValue="true"
+            app:title="@string/pref_nav_safe"
+            app:summary="@string/pref_nav_safe_sum"
+            app:iconSpaceReserved="false" />
+        <SeekBarPreference
+            app:key="bottom_gap"
+            app:defaultValue="0"
+            app:min="0"
+            android:max="48"
+            app:showSeekBarValue="true"
+            app:title="@string/pref_bottom_gap"
+            app:summary="@string/pref_bottom_gap_sum"
+            app:iconSpaceReserved="false" />
+        <Preference
+            app:key="toolbar_reset"
+            app:title="@string/pref_toolbar_reset"
+            app:summary="@string/pref_toolbar_reset_sum"
+            app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
     <PreferenceCategory app:title="@string/pref_cat_uzbek" app:iconSpaceReserved="false">
