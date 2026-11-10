@@ -52,6 +52,10 @@
             android:name=".settings.ThemesActivity"
             android:exported="false"
             android:label="@string/themes_title" />
+        <activity
+            android:name=".settings.KeyDesignActivity"
+            android:exported="false"
+            android:label="@string/key_design_title" />
 
         <activity
             android:name=".settings.LanguagesActivity"

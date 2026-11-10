@@ -1,5 +1,6 @@
 package uz.yangiuzbkey.keyboard.settings
 
+import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -14,7 +15,6 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.slider.Slider
@@ -66,19 +66,11 @@ class ThemesActivity : AppCompatActivity(), SharedPreferences.OnSharedPreference
         col.addView(sectionTitle(getString(R.string.theme_custom_bg)))
         buildBackground(col)
 
-        col.addView(sectionTitle(getString(R.string.theme_key_style)))
-        buildKeyStyle(col)
-
-        col.addView(sectionTitle(getString(R.string.theme_key_shape)))
-        val shape = card()
-        val shapeCol = vertical(16)
-        slider(shapeCol, R.string.theme_key_radius, "key_radius", 8, 0f, 24f, 1f)
-        slider(shapeCol, R.string.theme_key_gap, "key_gap", 3, 0f, 8f, 1f)
-        slider(shapeCol, R.string.theme_font_size, "font_scale", 100, 70f, 140f, 5f, "%")
-        switch(shapeCol, R.string.theme_bold, "key_bold")
-        switch(shapeCol, R.string.theme_key_border, "key_border")
-        shape.addView(shapeCol)
-        col.addView(shape)
+        col.addView(sectionTitle(getString(R.string.key_design_title)))
+        col.addView(MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+            text = getString(R.string.key_design_open)
+            setOnClickListener { startActivity(Intent(this@ThemesActivity, KeyDesignActivity::class.java)) }
+        }, LinearLayout.LayoutParams(MATCH, WRAP))
 
         col.addView(MaterialButton(this, null, com.google.android.material.R.attr.borderlessButtonStyle).apply {
             text = getString(R.string.theme_reset)
@@ -193,30 +185,6 @@ class ThemesActivity : AppCompatActivity(), SharedPreferences.OnSharedPreference
         slider(inner, R.string.theme_bg_dim, "bg_dim", 30, 0f, 90f, 5f, "%")
         c.addView(inner)
         col.addView(c)
-    }
-
-    private fun buildKeyStyle(col: LinearLayout) {
-        val ids = listOf("filled", "outline", "flat")
-        val labels = listOf(R.string.theme_style_filled, R.string.theme_style_outline, R.string.theme_style_flat)
-        val group = MaterialButtonToggleGroup(this).apply { isSingleSelection = true; isSelectionRequired = true }
-        val buttonIds = ids.map { View.generateViewId() }
-        ids.indices.forEach { i ->
-            group.addView(MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
-                id = buttonIds[i]
-                text = getString(labels[i])
-            }, LinearLayout.LayoutParams(0, WRAP, 1f))
-        }
-        group.addOnButtonCheckedListener { _, checkedId, isChecked ->
-            if (isChecked && !syncing) {
-                val v = ids[buttonIds.indexOf(checkedId)]
-                if (prefs.sp.getString("key_style", "filled") != v) prefs.sp.edit().putString("key_style", v).apply()
-            }
-        }
-        controls += {
-            val i = ids.indexOf(prefs.sp.getString("key_style", "filled")).coerceAtLeast(0)
-            if (group.checkedButtonId != buttonIds[i]) group.check(buttonIds[i])
-        }
-        col.addView(group, LinearLayout.LayoutParams(MATCH, WRAP))
     }
 
     private fun slider(col: LinearLayout, label: Int, key: String, def: Int, from: Float, to: Float, step: Float, unit: String = "") {

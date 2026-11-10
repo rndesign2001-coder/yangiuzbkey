@@ -9,6 +9,11 @@
             app:summary="@string/theme_presets"
             app:iconSpaceReserved="false" />
         <Preference
+            app:key="open_key_design"
+            app:title="@string/key_design_title"
+            app:summary="@string/key_design_summary"
+            app:iconSpaceReserved="false" />
+        <Preference
             app:key="open_languages"
             app:title="@string/languages_title"
             app:iconSpaceReserved="false" />

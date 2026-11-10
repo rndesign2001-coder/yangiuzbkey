@@ -296,13 +296,14 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
         kv.oneHandFrac = prefs.oneHandWidth / 100f
         applyBottomPadding()
         val alpha = LayoutBuilder.alpha(lang, prefs, prefs.languages.size > 1, variant, password)
-        val sym = LayoutBuilder.symbols(lang, prefs, false, variant)
-        kv.minContentHeight = if (mode == Mode.ALPHA || mode == Mode.SYMBOLS || mode == Mode.SYMBOLS2)
+        val sym = LayoutBuilder.symbols(lang, prefs, 1, variant)
+        kv.minContentHeight = if (mode == Mode.ALPHA || mode == Mode.SYMBOLS || mode == Mode.SYMBOLS2 || mode == Mode.SYMBOLS3)
             maxOf(kv.naturalHeight(alpha), kv.naturalHeight(sym)) else 0
         kv.setKeyboard(when (mode) {
             Mode.ALPHA -> alpha
             Mode.SYMBOLS -> sym
-            Mode.SYMBOLS2 -> LayoutBuilder.symbols(lang, prefs, true, variant)
+            Mode.SYMBOLS2 -> LayoutBuilder.symbols(lang, prefs, 2, variant)
+            Mode.SYMBOLS3 -> LayoutBuilder.symbols(lang, prefs, 3, variant)
             Mode.NUMPAD -> LayoutBuilder.numpad(false)
             Mode.PHONE -> LayoutBuilder.numpad(true)
         })
@@ -472,6 +473,7 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
             Key.ENTER -> onEnter()
             Key.SYMBOLS -> { finishComposing(); setMode(Mode.SYMBOLS) }
             Key.SYMBOLS2 -> setMode(Mode.SYMBOLS2)
+            Key.SYMBOLS3 -> setMode(Mode.SYMBOLS3)
             Key.ALPHA -> setMode(Mode.ALPHA)
             Key.LANG -> nextLanguage()
             Key.EMOJI -> openEmoji()

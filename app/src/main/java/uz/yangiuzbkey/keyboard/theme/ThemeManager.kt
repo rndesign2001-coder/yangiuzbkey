@@ -33,7 +33,7 @@ data class KeyboardTheme(
     val dark: Boolean,
 )
 
-enum class KeyStyle { FILLED, OUTLINE, FLAT }
+enum class KeyStyle { FILLED, OUTLINE, FLAT, RAISED, GRADIENT, PILL, GLASS, NEON, UNDERLINE }
 
 /** Theme + user style tweaks resolved for drawing. */
 class ResolvedStyle(
@@ -158,14 +158,25 @@ object ThemeManager {
         return cachedBg
     }
 
+    /** Key design ids in the order shown by the key design picker. */
+    val keyStyleIds = listOf("filled", "raised", "gradient", "pill", "glass", "neon", "outline", "underline", "flat")
+
+    fun keyStyleOf(id: String?): KeyStyle = when (id) {
+        "outline" -> KeyStyle.OUTLINE
+        "flat" -> KeyStyle.FLAT
+        "raised" -> KeyStyle.RAISED
+        "gradient" -> KeyStyle.GRADIENT
+        "pill" -> KeyStyle.PILL
+        "glass" -> KeyStyle.GLASS
+        "neon" -> KeyStyle.NEON
+        "underline" -> KeyStyle.UNDERLINE
+        else -> KeyStyle.FILLED
+    }
+
     fun resolve(ctx: Context, prefs: Prefs = Prefs(ctx)): ResolvedStyle {
         val sp = prefs.sp
         val t = theme(ctx, sp.getString("theme", "auto") ?: "auto")
-        val style = when (sp.getString("key_style", "filled")) {
-            "outline" -> KeyStyle.OUTLINE
-            "flat" -> KeyStyle.FLAT
-            else -> KeyStyle.FILLED
-        }
+        val style = keyStyleOf(sp.getString("key_style", "filled"))
         val useBg = sp.getBoolean("bg_image", false)
         return ResolvedStyle(
             theme = t,

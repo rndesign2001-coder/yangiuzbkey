@@ -180,4 +180,14 @@
     <string name="dict_exported">Lugʻat saqlandi: %1$d ta soʻz</string>
     <string name="dict_imported">Import qilindi: %1$d ta soʻz</string>
     <string name="dict_error">Faylni oʻqib/yozib boʻlmadi</string>
+    <string name="key_design_title">Tugmalar dizayni</string>
+    <string name="key_design_summary">Tugma uslubi, shakli va oʻlchami</string>
+    <string name="key_design_open">Tugmalar dizaynini tanlash</string>
+    <string name="key_design_styles">Dizayn uslublari</string>
+    <string name="theme_style_raised">Boʻrtma</string>
+    <string name="theme_style_gradient">Gradient</string>
+    <string name="theme_style_pill">Kapsula</string>
+    <string name="theme_style_glass">Shisha</string>
+    <string name="theme_style_neon">Neon</string>
+    <string name="theme_style_underline">Chiziqcha</string>
 </resources>

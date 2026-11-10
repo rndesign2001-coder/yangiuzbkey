@@ -33,6 +33,7 @@ class Key(
         const val SYMBOLS = -2
         const val ALPHA = -3
         const val SYMBOLS2 = -4
+        const val SYMBOLS3 = -11
         const val DELETE = -5
         const val LANG = -6
         const val ENTER = -7
@@ -66,7 +67,7 @@ class Key(
     }
 }
 
-enum class Mode { ALPHA, SYMBOLS, SYMBOLS2, NUMPAD, PHONE }
+enum class Mode { ALPHA, SYMBOLS, SYMBOLS2, SYMBOLS3, NUMPAD, PHONE }
 
 class KeyboardLayout(
     val rows: List<List<Key>>,

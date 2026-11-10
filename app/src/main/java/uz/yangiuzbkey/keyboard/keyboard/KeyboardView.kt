@@ -12,7 +12,6 @@ import android.os.Looper
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
-import uz.yangiuzbkey.keyboard.theme.KeyStyle
 import uz.yangiuzbkey.keyboard.theme.ResolvedStyle
 import java.util.Locale
 import kotlin.math.abs
@@ -169,14 +168,6 @@ class KeyboardView @JvmOverloads constructor(context: Context, attrs: AttributeS
 
     // ---------------------------------------------------------------- drawing
 
-    private fun withAlpha(c: Int, a: Float): Int =
-        Color.argb((Color.alpha(c) * a).toInt().coerceIn(0, 255), Color.red(c), Color.green(c), Color.blue(c))
-
-    private fun darken(c: Int): Int {
-        val f = 0.82f
-        return Color.argb(Color.alpha(c), (Color.red(c) * f).toInt(), (Color.green(c) * f).toInt(), (Color.blue(c) * f).toInt())
-    }
-
     private fun displayLabel(k: Key): String =
         if (k.isChar && k.code != Key.SPACE && shift != ShiftState.OFF) Key.upper(k.label, locale) else k.label
 
@@ -189,7 +180,6 @@ class KeyboardView @JvmOverloads constructor(context: Context, attrs: AttributeS
         val t = st.theme
         val photo = st.background != null
         val a = if (photo) 0.86f else 1f
-        val r = st.radiusDp * d
         val gh = st.gapDp * d / 2f
         val gv = st.gapDp * d / 2f + 2.5f * d
         val tf = if (st.bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
@@ -202,31 +192,7 @@ class KeyboardView @JvmOverloads constructor(context: Context, attrs: AttributeS
             val pressed = k in pressed
             val enter = k.code == Key.ENTER
             val func = k.functional
-            val fill: Int? = when {
-                enter -> if (pressed) darken(t.accent) else t.accent
-                pressed -> t.keyPressed
-                st.keyStyle == KeyStyle.FLAT -> null
-                st.keyStyle == KeyStyle.OUTLINE -> withAlpha(if (func) t.keyFuncBg else t.keyBg, 0.35f)
-                func -> t.keyFuncBg
-                else -> t.keyBg
-            }
-            if (fill != null) {
-                if (st.keyStyle == KeyStyle.FILLED && !pressed) {
-                    keyPaint.color = withAlpha(t.keyShadow, a)
-                    canvas.drawRoundRect(tmp.left, tmp.top + 1.2f * d, tmp.right, tmp.bottom + 1.2f * d, r, r, keyPaint)
-                }
-                keyPaint.color = withAlpha(fill, a)
-                canvas.drawRoundRect(tmp, r, r, keyPaint)
-            }
-            if (st.keyStyle == KeyStyle.OUTLINE && !enter) {
-                strokePaint.strokeWidth = 1.2f * d
-                strokePaint.color = withAlpha(t.keyText, 0.4f)
-                canvas.drawRoundRect(tmp, r, r, strokePaint)
-            } else if (st.border && fill != null) {
-                strokePaint.strokeWidth = 1f * d
-                strokePaint.color = t.border
-                canvas.drawRoundRect(tmp, r, r, strokePaint)
-            }
+            KeyPainter.draw(canvas, tmp, st, pressed, enter, func, d, a)
             drawContent(canvas, k, t.let { it }, st, baseH)
         }
     }

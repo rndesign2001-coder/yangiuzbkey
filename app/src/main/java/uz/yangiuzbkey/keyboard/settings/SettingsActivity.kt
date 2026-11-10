@@ -48,6 +48,7 @@ class SettingsActivity : AppCompatActivity() {
             val ctx = requireContext()
             when (preference.key) {
                 "open_themes" -> startActivity(Intent(ctx, ThemesActivity::class.java))
+                "open_key_design" -> startActivity(Intent(ctx, KeyDesignActivity::class.java))
                 "open_languages" -> startActivity(Intent(ctx, LanguagesActivity::class.java))
                 "toolbar_reset" -> {
                     Prefs(ctx).sp.edit().remove("toolbar_items").apply()

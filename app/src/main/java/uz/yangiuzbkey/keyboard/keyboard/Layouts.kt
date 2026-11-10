@@ -131,7 +131,14 @@ object LayoutBuilder {
         ")" to tokens("> } ]"), "\"" to tokens("« » “ ” „"), "'" to tokens("ʼ ʻ ‘ ’ ‚"),
         "!" to tokens("¡"), "?" to tokens("¿"), "*" to tokens("★ †"), "%" to tokens("‰"),
         "&" to tokens("§"), "+" to tokens("±"), "/" to tokens("÷"), "=" to tokens("≠ ≈ ∞"),
-        "." to tokens("… · •"), "°" to tokens("′ ″"), "<" to tokens("≤ « ‹"), ">" to tokens("≥ » ›"),
+        "." to tokens("… · •"), "°" to tokens("′ ″ ℃ ℉"), "<" to tokens("≤ « ‹"), ">" to tokens("≥ » ›"),
+        "←" to tokens("⇐ ↖ ↙"), "↑" to tokens("⇑ ↗"), "→" to tokens("⇒ ↘ ➜"), "↓" to tokens("⇓"),
+        "↔" to tokens("⇔ ↕"), "«" to tokens("“ „ ‹"), "»" to tokens("” ›"), "★" to tokens("☆ ✦ ✪"),
+        "♥" to tokens("♡ ♠ ♣ ♦"), "—" to tokens("– _ ·"), "₽" to tokens("₹ ₴ ₼ ₾"), "∞" to tokens("∝"),
+        "µ" to tokens("α β γ δ λ θ"), "Ω" to tokens("ω φ σ"), "∑" to tokens("∏ ∫ ∂"), "®" to tokens("℗ ℠"),
+        "№" to tokens("#"), "§" to tokens("¶"), "…" to tokens("‥"), "≠" to tokens("≡"), "±" to tokens("∓"),
+        "√" to tokens("∛ ∜"), "π" to tokens("Π φ"), "×" to tokens("⋅ ∗"), "•" to tokens("○ ● ◦ ▪"),
+        "✓" to tokens("✔ ✗ ✘ ☑"), "^" to tokens("¹ ² ³ ⁿ"), "∆" to tokens("∇"),
     )
     private val periodPopups = tokens("? ! , : ; … - ' \" @ / #")
 
@@ -199,22 +206,31 @@ object LayoutBuilder {
     private fun symRow(s: String, units: Float = 10f) =
         tokens(s).map { Key.char(it, symPopups[it] ?: digitPopups[it] ?: emptyList()) }
 
-    fun symbols(lang: Language, p: Prefs, page2: Boolean, variant: FieldVariant): KeyboardLayout {
+    /** @param page 1..3; the left key of the third row cycles 1 → 2 → 3 → 1. */
+    fun symbols(lang: Language, p: Prefs, page: Int, variant: FieldVariant): KeyboardLayout {
         val rows = ArrayList<List<Key>>()
-        if (!page2) {
-            rows += symRow("1234567890")
-            rows += symRow("@#\$_&-+()/")
-            rows += listOf(Key.func(Key.SYMBOLS2, "=\\<", 1.5f)) + symRow("*\"':;!?") +
-                Key.func(Key.DELETE, weight = 1.5f, repeatable = true)
-        } else {
-            rows += symRow("~ ` | • √ π ÷ × ¶ ∆")
-            rows += symRow("£ € ¥ ^ ° = { } \\ %")
-            rows += listOf(Key.func(Key.SYMBOLS, "?123", 1.5f)) + symRow("© ™ ✓ [ ] < >") +
-                Key.func(Key.DELETE, weight = 1.5f, repeatable = true)
-            rows[2][1].popups = tokens("®")
+        val del = Key.func(Key.DELETE, weight = 1.5f, repeatable = true)
+        when (page) {
+            2 -> {
+                rows += symRow("~ ` | • √ π ÷ × ¶ ∆")
+                rows += symRow("£ € ¥ ^ ° = { } \\ %")
+                rows += listOf(Key.func(Key.SYMBOLS3, "2/3", 1.5f)) + symRow("© ™ ✓ [ ] < >") + del
+                rows[2][1].popups = tokens("®")
+            }
+            3 -> {
+                rows += symRow("← ↑ → ↓ ↔ ≠ ≈ ≤ ≥ ±")
+                rows += symRow("№ § ‰ ∞ µ Ω ∑ « » …")
+                rows += listOf(Key.func(Key.SYMBOLS, "3/3", 1.5f)) + symRow("₽ ₸ ¢ ® ★ ♥ —") + del
+            }
+            else -> {
+                rows += symRow("1234567890")
+                rows += symRow("@#\$_&-+()/")
+                rows += listOf(Key.func(Key.SYMBOLS2, "1/3", 1.5f)) + symRow("*\"':;!?") + del
+            }
         }
         rows += bottomRow(10f, false, lang, p, false, variant)
-        return KeyboardLayout(rows, if (page2) Mode.SYMBOLS2 else Mode.SYMBOLS, 10f)
+        val mode = when (page) { 2 -> Mode.SYMBOLS2; 3 -> Mode.SYMBOLS3; else -> Mode.SYMBOLS }
+        return KeyboardLayout(rows, mode, 10f)
     }
 
     fun numpad(phone: Boolean): KeyboardLayout {
