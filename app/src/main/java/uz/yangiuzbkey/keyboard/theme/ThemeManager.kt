@@ -176,7 +176,7 @@ object ThemeManager {
     fun resolve(ctx: Context, prefs: Prefs = Prefs(ctx)): ResolvedStyle {
         val sp = prefs.sp
         val t = theme(ctx, sp.getString("theme", "auto") ?: "auto")
-        val style = keyStyleOf(sp.getString("key_style", "filled"))
+        val style = keyStyleOf(sp.getString("key_style", "glass"))
         val useBg = sp.getBoolean("bg_image", false)
         return ResolvedStyle(
             theme = t,

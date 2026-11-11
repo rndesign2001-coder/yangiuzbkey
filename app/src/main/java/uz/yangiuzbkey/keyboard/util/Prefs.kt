@@ -82,7 +82,7 @@ class Prefs(context: Context) {
     fun toggleNumberRow() { sp.edit().putBoolean("number_row", !numberRow).apply() }
 
     companion object {
-        const val DEFAULT_LANGS = "uz_new,uz_latn,ru,en"
+        const val DEFAULT_LANGS = "uz_new,uz_latn,uz_cyrl,en"
         const val DEFAULT_SHORTCUTS = "assl\tAssalomu alaykum\nrhm\tRahmat\nxayr\tXayr, salomat bo'ling"
         const val DEFAULT_TOOLBAR = "SETTINGS,EMOJI,CLIPBOARD,NUMBERS,THEME,CONVERT,HIDE"
     }
