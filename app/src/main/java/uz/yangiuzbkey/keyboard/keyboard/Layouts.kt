@@ -184,6 +184,7 @@ object LayoutBuilder {
     private fun bottomRow(units: Float, alpha: Boolean, lang: Language, p: Prefs, multiLang: Boolean, variant: FieldVariant): List<Key> {
         val left = ArrayList<Key>()
         left += if (alpha) Key.func(Key.SYMBOLS, "?123", 1.5f) else Key.func(Key.ALPHA, "ABC", 1.5f)
+        if (!alpha) left += Key.func(Key.NUMPAD, "1234")
         val commaPops = ArrayList<String>().apply {
             add(Key.POP_SETTINGS); add(Key.POP_EMOJI); add(Key.POP_CLIPBOARD)
         }
@@ -233,7 +234,7 @@ object LayoutBuilder {
         return KeyboardLayout(rows, mode, 10f)
     }
 
-    fun numpad(phone: Boolean): KeyboardLayout {
+    fun numpad(phone: Boolean, back: Boolean = false): KeyboardLayout {
         val rows = ArrayList<List<Key>>()
         if (phone) {
             rows += symRow("1 2 3 (")
@@ -244,7 +245,7 @@ object LayoutBuilder {
             rows += symRow("1 2 3 -")
             rows += symRow("4 5 6 ,")
             rows += symRow("7 8 9") + Key.func(Key.DELETE, repeatable = true)
-            rows += listOf(Key.char("+", tokens("± *")), Key.char("0"), Key.char(".", tokens("/ %")), Key.func(Key.ENTER))
+            rows += listOf(if (back) Key.func(Key.ALPHA, "ABC") else Key.char("+", tokens("± *")), Key.char("0", if (back) tokens("+") else emptyList()), Key.char(".", tokens("/ %")), Key.func(Key.ENTER))
         }
         return KeyboardLayout(rows, if (phone) Mode.PHONE else Mode.NUMPAD, 4f)
     }

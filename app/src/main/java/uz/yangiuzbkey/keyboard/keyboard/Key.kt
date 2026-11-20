@@ -34,6 +34,7 @@ class Key(
         const val ALPHA = -3
         const val SYMBOLS2 = -4
         const val SYMBOLS3 = -11
+        const val NUMPAD = -12
         const val DELETE = -5
         const val LANG = -6
         const val ENTER = -7

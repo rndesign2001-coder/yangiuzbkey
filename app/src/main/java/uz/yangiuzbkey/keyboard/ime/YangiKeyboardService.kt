@@ -168,6 +168,7 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
         }
         noSuggest = rawInput || password || variant != FieldVariant.NORMAL ||
             info.inputType and InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS != 0 || cls != InputType.TYPE_CLASS_TEXT
+        manualNumpad = false
         mode = when (cls) {
             InputType.TYPE_CLASS_NUMBER, InputType.TYPE_CLASS_DATETIME -> Mode.NUMPAD
             InputType.TYPE_CLASS_PHONE -> Mode.PHONE
@@ -304,7 +305,7 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
             Mode.SYMBOLS -> sym
             Mode.SYMBOLS2 -> LayoutBuilder.symbols(lang, prefs, 2, variant)
             Mode.SYMBOLS3 -> LayoutBuilder.symbols(lang, prefs, 3, variant)
-            Mode.NUMPAD -> LayoutBuilder.numpad(false)
+            Mode.NUMPAD -> LayoutBuilder.numpad(false, manualNumpad)
             Mode.PHONE -> LayoutBuilder.numpad(true)
         })
         layoutDirty = false
@@ -474,7 +475,8 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
             Key.SYMBOLS -> { finishComposing(); setMode(Mode.SYMBOLS) }
             Key.SYMBOLS2 -> setMode(Mode.SYMBOLS2)
             Key.SYMBOLS3 -> setMode(Mode.SYMBOLS3)
-            Key.ALPHA -> setMode(Mode.ALPHA)
+            Key.ALPHA -> { manualNumpad = false; setMode(Mode.ALPHA) }
+            Key.NUMPAD -> { finishComposing(); manualNumpad = true; setMode(Mode.NUMPAD) }
             Key.LANG -> nextLanguage()
             Key.EMOJI -> openEmoji()
             Key.SETTINGS -> launch(SettingsActivity::class.java)
@@ -482,6 +484,8 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
             else -> ic?.let { }
         }
     }
+
+    private var manualNumpad = false
 
     private fun setMode(m: Mode) {
         mode = m
@@ -799,7 +803,7 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
         closePanels()
     }
 
-    override fun onClipPaste(text: String) { currentInputConnection?.commitText(text, 1); closePanels() }
+    override fun onClipPaste(text: String) { finishComposing(); currentInputConnection?.commitText(text, 1) }
 
     override fun onClipClose() { closePanels() }
 
