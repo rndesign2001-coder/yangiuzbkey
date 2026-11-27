@@ -777,29 +777,6 @@ class YangiKeyboardService : InputMethodService(), KeyboardView.Listener, Sugges
     override fun onEmojiClose() { closePanels() }
 
     override fun onImagePaste(uri: android.net.Uri) {
-        val store = ScreenshotStore(this)
-        val shot = store.recent().firstOrNull { it.uri == uri }
-        val shared = shot?.let { store.share(it) }
-        if (shared == null) { closePanels(); return }
-        val ei = currentInputEditorInfo
-        val ic = currentInputConnection
-        val accepts = ei != null && androidx.core.view.inputmethod.EditorInfoCompat.getContentMimeTypes(ei)
-            .any { android.content.ClipDescription.compareMimeTypes("image/png", it) }
-        var sent = false
-        if (accepts && ic != null) {
-            val info = androidx.core.view.inputmethod.InputContentInfoCompat(shared,
-                android.content.ClipDescription("Screenshot", arrayOf("image/png")), null)
-            val flags = if (Build.VERSION.SDK_INT >= 25)
-                androidx.core.view.inputmethod.InputConnectionCompat.INPUT_CONTENT_GRANT_READ_URI_PERMISSION else 0
-            sent = androidx.core.view.inputmethod.InputConnectionCompat.commitContent(ic, ei!!, info, flags, null)
-        }
-        if (!sent) {
-            try {
-                (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
-                    .setPrimaryClip(android.content.ClipData.newUri(contentResolver, "Screenshot", shared))
-                Toast.makeText(this, R.string.clip_image_copied, Toast.LENGTH_SHORT).show()
-            } catch (_: Exception) { }
-        }
         closePanels()
     }
 
